@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App -->
+    <string name="app_name">ScryBook</string>
+    <string name="home_subtitle">Your writing projects</string>
+
+    <!-- Common actions -->
+    <string name="action_back">Back</string>
+    <string name="action_save">Save</string>
+    <string name="action_create">Create</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_refresh">Refresh</string>
+    <string name="action_new_project">New project</string>
+    <string name="action_new_chapter">New chapter</string>
+    <string name="action_info">Information</string>
+    <string name="action_tts">Read aloud</string>
+    <string name="action_stt">Dictate</string>
+    <string name="action_export_pdf">Export as PDF</string>
+    <string name="action_open_file">Open a file</string>
+
+    <!-- Drawer -->
+    <string name="drawer_chapters">Chapters</string>
+    <string name="drawer_chapter_count">chapter(s)</string>
+
+    <!-- Home -->
+    <string name="home_no_projects">No projects found.\nCreate your first book!</string>
+    <string name="project_name">Project name</string>
+    <string name="project_folder">Destination folder</string>
+    <string name="project_use_default_folder">Use default folder</string>
+
+    <!-- Navigation -->
+    <string name="nav_characters">Characters</string>
+    <string name="nav_places">Places</string>
+    <string name="nav_info">Information</string>
+    <string name="nav_summary">Summary</string>
+
+    <!-- Project -->
+    <string name="project_no_chapters">No chapters yet.\nStart writing!</string>
+    <string name="chapter_title">Chapter title</string>
+    <string name="chapter_number">Number</string>
+    <string name="chapter_summary">Summary</string>
+    <string name="chapter_delete_title">Delete chapter</string>
+    <string name="chapter_delete_confirm">Delete « %1$s »? This cannot be undone.</string>
+    <string name="chapter_edit_title">Edit chapter</string>
+
+    <!-- Editor -->
+    <string name="editor_saving">Saving…</string>
+
+    <!-- Project Info -->
+    <string name="info_title">Book information</string>
+    <string name="info_book_title">Title</string>
+    <string name="info_subtitle">Subtitle</string>
+    <string name="info_author">Author</string>
+    <string name="info_date">Date</string>
+    <string name="info_summary">Summary</string>
+    <string name="info_saved">Information saved</string>
+
+    <!-- Characters -->
+    <string name="characters_empty">No characters yet.\nAdd one!</string>
+    <string name="character_unnamed">Unnamed</string>
+    <string name="character_new">New character</string>
+    <string name="character_edit">Edit character</string>
+    <string name="character_alias">Alias / Nickname</string>
+    <string name="character_firstname">First name</string>
+    <string name="character_lastname">Last name</string>
+    <string name="character_gender">Gender</string>
+    <string name="character_age">Age</string>
+    <string name="character_physical">Physical description</string>
+    <string name="character_description">General description</string>
+    <string name="character_skills">Skills</string>
+
+    <!-- Places -->
+    <string name="places_empty">No places yet.\nAdd one!</string>
+    <string name="place_unnamed">Unnamed</string>
+    <string name="place_new">New place</string>
+    <string name="place_edit">Edit place</string>
+    <string name="place_name">Place name</string>
+    <string name="place_description">Description</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_font_size">Font size</string>
+    <string name="settings_autosave">Auto-save (seconds)</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_saved">Settings saved</string>
+
+    <!-- Full Summary -->
+    <string name="full_summary_title">Full summary</string>
+    <string name="full_summary_no_resume">No summary</string>
+    <string name="full_summary_word_count">%1$d words</string>
+</resources>
