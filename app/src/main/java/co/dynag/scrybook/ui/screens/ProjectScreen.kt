@@ -24,6 +24,8 @@ import co.dynag.scrybook.data.model.Info
 import co.dynag.scrybook.ui.viewmodel.ExportViewModel
 import co.dynag.scrybook.ui.viewmodel.ExportResult
 import co.dynag.scrybook.ui.viewmodel.ProjectViewModel
+import co.dynag.scrybook.ui.components.ProjectDrawerContent
+import co.dynag.scrybook.ui.components.SummaryPanel
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -89,31 +91,41 @@ fun ProjectScreen(
                 }
             }
         ) {
-            ProjectMainContent(
-                info = info,
-                projectPath = projectPath,
-                chapitres = chapitres,
-                isLoading = isLoading,
-                exporting = exporting,
-                snackbarHostState = snackbarHostState,
-                isLandscape = true,
-                onBack = onBack,
-                onDrawerOpen = { scope.launch { drawerState.open() } },
-                onExport = {
-                    val outDir = context.getExternalFilesDir("exports") ?: context.filesDir
-                    val fileName = (info.titre.ifBlank { File(projectPath).nameWithoutExtension }) + ".pdf"
-                    exportViewModel.exportBookPdf(projectPath, File(outDir, fileName).absolutePath)
-                },
-                onSettingsOpen = onSettingsOpen,
-                onNewChapter = { viewModel.showNewChapterDialog() },
-                onCharactersOpen = onCharactersOpen,
-                onPlacesOpen = onPlacesOpen,
-                onFullSummaryOpen = onFullSummaryOpen,
-                onInfoOpen = onInfoOpen,
-                onChapterOpen = onChapterOpen,
-                onChapterEdit = { chapterToEdit = it },
-                onChapterDelete = { chapterToDelete = it }
-            )
+            Row(modifier = Modifier.fillMaxSize()) {
+                Box(modifier = Modifier.weight(1f)) {
+                    ProjectMainContent(
+                        info = info,
+                        projectPath = projectPath,
+                        chapitres = chapitres,
+                        isLoading = isLoading,
+                        exporting = exporting,
+                        snackbarHostState = snackbarHostState,
+                        isLandscape = true,
+                        onBack = onBack,
+                        onDrawerOpen = { scope.launch { drawerState.open() } },
+                        onExport = {
+                            val outDir = context.getExternalFilesDir("exports") ?: context.filesDir
+                            val fileName = (info.titre.ifBlank { File(projectPath).nameWithoutExtension }) + ".pdf"
+                            exportViewModel.exportBookPdf(projectPath, File(outDir, fileName).absolutePath)
+                        },
+                        onSettingsOpen = onSettingsOpen,
+                        onNewChapter = { viewModel.showNewChapterDialog() },
+                        onCharactersOpen = onCharactersOpen,
+                        onPlacesOpen = onPlacesOpen,
+                        onFullSummaryOpen = onFullSummaryOpen,
+                        onInfoOpen = onInfoOpen,
+                        onChapterOpen = onChapterOpen,
+                        onChapterEdit = { chapterToEdit = it },
+                        onChapterDelete = { chapterToDelete = it }
+                    )
+                }
+                VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                SummaryPanel(
+                    title = stringResource(R.string.nav_summary),
+                    resume = info.resume,
+                    modifier = Modifier.width(300.dp)
+                )
+            }
         }
     } else {
         ModalNavigationDrawer(
@@ -227,68 +239,6 @@ fun ProjectScreen(
     }
 }
 
-@Composable
-private fun ColumnScope.ProjectDrawerContent(
-    chapitres: List<Chapitre>,
-    onChapterOpen: (Long) -> Unit,
-    onNewChapter: () -> Unit
-) {
-    // Drawer header
-    Surface(
-        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(Modifier.padding(20.dp)) {
-            Text(
-                stringResource(R.string.drawer_chapters),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-            Text(
-                "${chapitres.size} ${stringResource(R.string.drawer_chapter_count)}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-            )
-        }
-    }
-    Spacer(Modifier.height(8.dp))
-
-    // Chapter list in drawer
-    LazyColumn(modifier = Modifier.weight(1f)) {
-        items(chapitres, key = { it.id }) { chapitre ->
-            NavigationDrawerItem(
-                icon = {
-                    Surface(shape = RoundedCornerShape(6.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
-                        Text(
-                            chapitre.numero.ifBlank { "—" },
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                    }
-                },
-                label = {
-                    Text(chapitre.nom, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
-                },
-                selected = false,
-                onClick = { onChapterOpen(chapitre.id) },
-                modifier = Modifier.padding(horizontal = 8.dp)
-            )
-        }
-    }
-
-    // Add chapter button at bottom of drawer
-    HorizontalDivider()
-    NavigationDrawerItem(
-        icon = { Icon(Icons.Default.Add, null, modifier = Modifier.size(20.dp)) },
-        label = { Text(stringResource(R.string.action_new_chapter), style = MaterialTheme.typography.bodyMedium) },
-        selected = false,
-        onClick = onNewChapter,
-        modifier = Modifier.padding(8.dp)
-    )
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -29,7 +29,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import co.dynag.scrybook.R
+import co.dynag.scrybook.ui.components.ProjectDrawerContent
+import co.dynag.scrybook.ui.components.SummaryPanel
 import co.dynag.scrybook.ui.viewmodel.EditorViewModel
+import android.content.res.Configuration
+import androidx.compose.ui.platform.LocalConfiguration
 import java.util.Locale
 
 @SuppressLint("SetJavaScriptEnabled")
@@ -39,11 +43,13 @@ fun EditorScreen(
     projectPath: String,
     chapterId: Long,
     onBack: () -> Unit,
+    onChapterOpen: ((Long) -> Unit)? = null,
     onCharactersOpen: (() -> Unit)? = null,
     onPlacesOpen: (() -> Unit)? = null,
     viewModel: EditorViewModel = hiltViewModel()
 ) {
     val chapitre by viewModel.chapitre.collectAsState()
+    val chapitres by viewModel.chapitres.collectAsState()
     val htmlContent by viewModel.htmlContent.collectAsState()
     val isSaving by viewModel.isSaving.collectAsState()
     val isTtsPlaying by viewModel.isTtsPlaying.collectAsState()
@@ -53,6 +59,11 @@ fun EditorScreen(
     var webView by remember { mutableStateOf<WebView?>(null) }
     var isSttListening by remember { mutableStateOf(false) }
     var speechRecognizer by remember { mutableStateOf<SpeechRecognizer?>(null) }
+    
+    var showNewChapterDialog by remember { mutableStateOf(false) }
+
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     // Launcher for image picker
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -87,66 +98,35 @@ fun EditorScreen(
         onDispose { viewModel.saveNow() }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                navigationIcon = {
-                    IconButton(onClick = {
-                        viewModel.saveNow()
-                        onBack()
-                    }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.action_back))
-                    }
-                },
-                title = {
-                    Column {
-                        Text(
-                            text = chapitre?.nom ?: "",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        AnimatedVisibility(isSaving) {
-                            Text(
-                                text = stringResource(R.string.editor_saving),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.secondary
-                            )
-                        }
-                    }
-                },
-                actions = {
-                    // Characters shortcut
-                    onCharactersOpen?.let {
-                        IconButton(onClick = it) {
-                            Icon(Icons.Default.Person, contentDescription = stringResource(R.string.nav_characters))
-                        }
-                    }
-                    // Places shortcut
-                    onPlacesOpen?.let {
-                        IconButton(onClick = it) {
-                            Icon(Icons.Default.Place, contentDescription = stringResource(R.string.nav_places))
-                        }
-                    }
-                    
-                    // TTS button
-                    IconButton(
-                        onClick = {
-                            val text = htmlContent
-                            viewModel.toggleTts(text)
-                        },
-                        enabled = ttsReady
-                    ) {
-                        Icon(
-                            if (isTtsPlaying) Icons.Default.PauseCircle else Icons.Default.PlayCircle,
-                            contentDescription = stringResource(R.string.action_tts),
-                            tint = if (isTtsPlaying) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    // STT button
-                    IconButton(
-                        onClick = {
+    if (isLandscape) {
+        PermanentNavigationDrawer(
+            drawerContent = {
+                PermanentDrawerSheet(
+                    modifier = Modifier.width(250.dp),
+                    drawerContainerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                ) {
+                    ProjectDrawerContent(
+                        chapitres = chapitres,
+                        onChapterOpen = { id -> onChapterOpen?.invoke(id) },
+                        onNewChapter = { showNewChapterDialog = true },
+                        selectedId = chapterId
+                    )
+                }
+            }
+        ) {
+            Scaffold(
+                topBar = {
+                    EditorTopAppBar(
+                        chapitreNom = chapitre?.nom ?: "",
+                        isSaving = isSaving,
+                        onBack = { viewModel.saveNow(); onBack() },
+                        onCharactersOpen = onCharactersOpen,
+                        onPlacesOpen = onPlacesOpen,
+                        onToggleTts = { viewModel.toggleTts(htmlContent) },
+                        isTtsPlaying = isTtsPlaying,
+                        ttsReady = ttsReady,
+                        isSttListening = isSttListening,
+                        onToggleStt = {
                             if (isSttListening) {
                                 speechRecognizer?.stopListening()
                                 isSttListening = false
@@ -179,45 +159,225 @@ fun EditorScreen(
                                 sr.startListening(intent)
                             }
                         }
-                    ) {
-                        Icon(
-                            if (isSttListening) Icons.Default.MicOff else Icons.Default.Mic,
-                            contentDescription = stringResource(R.string.action_stt),
-                            tint = if (isSttListening) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            ) { innerPadding ->
+                // Key the content on chapterId to force recreation when switching chapters
+                // This ensures we get a fresh WebView and fresh state for each chapter
+                key(chapterId) {
+                    Row(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            EditorMainContent(
+                                webView = webView,
+                                onWebViewCreated = { webView = it },
+                                htmlContent = htmlContent,
+                                onContentChanged = { viewModel.updateContent(it) },
+                                onInsertImage = { imagePickerLauncher.launch("image/*") }
+                            )
+                        }
+                        VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        SummaryPanel(
+                            title = stringResource(R.string.chapter_summary),
+                            resume = chapitre?.resume ?: "",
+                            modifier = Modifier.width(250.dp)
                         )
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
-            )
+                }
+            }
         }
-    ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            // Formatting toolbar
-            FormattingToolbar(webView = webView, onInsertImage = { imagePickerLauncher.launch("image/*") })
-
-            // WebView editor
-            AndroidView(
-                factory = { ctx ->
-                    WebView(ctx).apply {
-                        layoutParams = ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT
-                        )
-                        settings.javaScriptEnabled = true
-                        settings.domStorageEnabled = true
-                        settings.allowFileAccess = true
-                        settings.allowContentAccess = true
-                        addJavascriptInterface(object {
-                            @JavascriptInterface
-                            fun onContentChanged(html: String) {
-                                viewModel.updateContent(html)
+    } else {
+        Scaffold(
+            topBar = {
+                EditorTopAppBar(
+                    chapitreNom = chapitre?.nom ?: "",
+                    isSaving = isSaving,
+                    onBack = { viewModel.saveNow(); onBack() },
+                    onCharactersOpen = onCharactersOpen,
+                    onPlacesOpen = onPlacesOpen,
+                    onToggleTts = { viewModel.toggleTts(htmlContent) },
+                    isTtsPlaying = isTtsPlaying,
+                    ttsReady = ttsReady,
+                    isSttListening = isSttListening,
+                    onToggleStt = {
+                        if (isSttListening) {
+                            speechRecognizer?.stopListening()
+                            isSttListening = false
+                        } else {
+                            val sr = SpeechRecognizer.createSpeechRecognizer(context)
+                            speechRecognizer = sr
+                            sr.setRecognitionListener(object : RecognitionListener {
+                                override fun onResults(results: android.os.Bundle?) {
+                                    isSttListening = false
+                                    val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                                    if (!matches.isNullOrEmpty()) {
+                                        val text = matches[0]
+                                        webView?.evaluateJavascript("insertTextAtCursor('${text.replace("'", "\\'")}');", null)
+                                    }
+                                }
+                                override fun onReadyForSpeech(p: android.os.Bundle?) { isSttListening = true }
+                                override fun onError(error: Int) { isSttListening = false }
+                                override fun onEndOfSpeech() {}
+                                override fun onBeginningOfSpeech() {}
+                                override fun onRmsChanged(v: Float) {}
+                                override fun onBufferReceived(b: ByteArray?) {}
+                                override fun onPartialResults(b: android.os.Bundle?) {}
+                                override fun onEvent(t: Int, b: android.os.Bundle?) {}
+                            })
+                            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                                putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.FRENCH.toLanguageTag())
+                                putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
                             }
-                        }, "Android")
-                        webViewClient = object : WebViewClient() {
-                            override fun onPageFinished(view: WebView, url: String) {
-                                // Load initial content
+                            sr.startListening(intent)
+                        }
+                    }
+                )
+            }
+        ) { innerPadding ->
+            Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+                EditorMainContent(
+                    webView = webView,
+                    onWebViewCreated = { webView = it },
+                    htmlContent = htmlContent,
+                    onContentChanged = { viewModel.updateContent(it) },
+                    onInsertImage = { imagePickerLauncher.launch("image/*") }
+                )
+            }
+        }
+    }
+
+    if (showNewChapterDialog) {
+        var newChapNom by remember { mutableStateOf("") }
+        var newChapNum by remember { mutableStateOf("") }
+        var newChapResume by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showNewChapterDialog = false },
+            title = { Text(stringResource(R.string.action_new_chapter)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedTextField(newChapNom, { newChapNom = it }, label = { Text(stringResource(R.string.chapter_title)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(newChapNum, { newChapNum = it }, label = { Text(stringResource(R.string.chapter_number)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(newChapResume, { newChapResume = it }, label = { Text(stringResource(R.string.chapter_summary)) }, minLines = 3, modifier = Modifier.fillMaxWidth())
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    if (newChapNom.isNotBlank()) {
+                        viewModel.addChapitre(newChapNom, newChapNum, newChapResume)
+                        showNewChapterDialog = false
+                    }
+                }) { Text(stringResource(R.string.action_create)) }
+            },
+            dismissButton = { TextButton(onClick = { showNewChapterDialog = false }) { Text(stringResource(R.string.action_cancel)) } }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditorTopAppBar(
+    chapitreNom: String,
+    isSaving: Boolean,
+    onBack: () -> Unit,
+    onCharactersOpen: (() -> Unit)?,
+    onPlacesOpen: (() -> Unit)?,
+    onToggleTts: () -> Unit,
+    isTtsPlaying: Boolean,
+    ttsReady: Boolean,
+    isSttListening: Boolean,
+    onToggleStt: () -> Unit
+) {
+    TopAppBar(
+        navigationIcon = {
+            IconButton(onClick = onBack) {
+                Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.action_back))
+            }
+        },
+        title = {
+            Column {
+                Text(
+                    text = chapitreNom,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                AnimatedVisibility(isSaving) {
+                    Text(
+                        text = stringResource(R.string.editor_saving),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+            }
+        },
+        actions = {
+            onCharactersOpen?.let {
+                IconButton(onClick = it) {
+                    Icon(Icons.Default.Person, contentDescription = stringResource(R.string.nav_characters))
+                }
+            }
+            onPlacesOpen?.let {
+                IconButton(onClick = it) {
+                    Icon(Icons.Default.Place, contentDescription = stringResource(R.string.nav_places))
+                }
+            }
+            IconButton(onClick = onToggleTts, enabled = ttsReady) {
+                Icon(
+                    if (isTtsPlaying) Icons.Default.PauseCircle else Icons.Default.PlayCircle,
+                    contentDescription = stringResource(R.string.action_tts),
+                    tint = if (isTtsPlaying) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface
+                )
+            }
+            IconButton(onClick = onToggleStt) {
+                Icon(
+                    if (isSttListening) Icons.Default.MicOff else Icons.Default.Mic,
+                    contentDescription = stringResource(R.string.action_stt),
+                    tint = if (isSttListening) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+                )
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+    )
+}
+
+@Composable
+private fun EditorMainContent(
+    webView: WebView?,
+    onWebViewCreated: (WebView) -> Unit,
+    htmlContent: String,
+    onContentChanged: (String) -> Unit,
+    onInsertImage: () -> Unit
+) {
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        // Formatting toolbar
+        FormattingToolbar(webView = webView, onInsertImage = onInsertImage)
+
+        // WebView editor
+        AndroidView(
+            factory = { ctx ->
+                WebView(ctx).apply {
+                    layoutParams = ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                    settings.javaScriptEnabled = true
+                    settings.domStorageEnabled = true
+                    settings.allowFileAccess = true
+                    settings.allowContentAccess = true
+                    // Add a default background to the view before HTML loads
+                    setBackgroundColor(android.graphics.Color.parseColor("#0F1318"))
+                    
+                    addJavascriptInterface(object {
+                        @JavascriptInterface
+                        fun onContentChanged(html: String) {
+                            onContentChanged(html)
+                        }
+                    }, "Android")
+                    webViewClient = object : WebViewClient() {
+                        override fun onPageFinished(view: WebView, url: String) {
+                            // Load initial content if available
+                            if (htmlContent.isNotEmpty()) {
                                 val escaped = htmlContent
                                     .replace("\\", "\\\\")
                                     .replace("'", "\\'")
@@ -225,13 +385,27 @@ fun EditorScreen(
                                 view.evaluateJavascript("setContent('$escaped');", null)
                             }
                         }
-                        loadDataWithBaseURL(null, EDITOR_HTML, "text/html", "UTF-8", null)
-                        webView = this
                     }
-                },
-                modifier = Modifier.fillMaxSize()
-            )
-        }
+                    loadDataWithBaseURL(null, EDITOR_HTML, "text/html", "UTF-8", null)
+                    onWebViewCreated(this)
+                }
+            },
+            update = { view ->
+                // Fallback: If htmlContent arrives after onPageFinished, or if switching chapters
+                // We could use a tagging system to avoid unnecessary updates if needed
+                // For now, if WebView is empty but htmlContent is not, push it.
+                if (htmlContent.isNotEmpty()) {
+                    // Only push if the webview is likely empty (this is a simple heuristic)
+                    // In a production app, we'd use a more robust way to sync.
+                    val escaped = htmlContent
+                        .replace("\\", "\\\\")
+                        .replace("'", "\\'")
+                        .replace("\n", "\\n")
+                    view.evaluateJavascript("if(document.getElementById('editor').innerHTML === '') setContent('$escaped');", null)
+                }
+            },
+            modifier = Modifier.weight(1f).fillMaxWidth()
+        )
     }
 }
 

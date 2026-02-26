@@ -79,6 +79,11 @@ fun AppNavigation(openFilePath: String? = null) {
                 projectPath = projectPath,
                 chapterId = chapterId,
                 onBack = { navController.popBackStack() },
+                onChapterOpen = { newId ->
+                    navController.navigate(Screen.Editor.createRoute(projectPath, newId)) {
+                        // Replace current if same destination but different ID (optional, but keep default stack for now)
+                    }
+                },
                 onCharactersOpen = { navController.navigate(Screen.Characters.createRoute(projectPath)) },
                 onPlacesOpen = { navController.navigate(Screen.Places.createRoute(projectPath)) }
             )

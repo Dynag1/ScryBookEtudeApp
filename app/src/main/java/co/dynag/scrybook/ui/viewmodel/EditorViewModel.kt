@@ -25,6 +25,9 @@ class EditorViewModel @Inject constructor(
     private val _chapitre = MutableStateFlow<Chapitre?>(null)
     val chapitre: StateFlow<Chapitre?> = _chapitre
 
+    private val _chapitres = MutableStateFlow<List<Chapitre>>(emptyList())
+    val chapitres: StateFlow<List<Chapitre>> = _chapitres
+
     private val _htmlContent = MutableStateFlow("")
     val htmlContent: StateFlow<String> = _htmlContent
 
@@ -71,6 +74,9 @@ class EditorViewModel @Inject constructor(
             _chapitre.value = ch
             _htmlContent.value = ch?.contenuHtml ?: ""
             lastContent = _htmlContent.value
+            
+            // Also load all chapters for the drawer
+            _chapitres.value = repository.getChapitres()
         }
     }
 
@@ -85,7 +91,15 @@ class EditorViewModel @Inject constructor(
                 repository.saveChapitreContenu(currentChapterId, _htmlContent.value)
                 lastContent = _htmlContent.value
                 _isSaving.value = false
+                // Update the chapter object in the list if needed (though contents are not in list)
             }
+        }
+    }
+
+    fun addChapitre(nom: String, numero: String, resume: String) {
+        viewModelScope.launch {
+            repository.insertChapitre(nom, numero, resume)
+            _chapitres.value = repository.getChapitres()
         }
     }
 
