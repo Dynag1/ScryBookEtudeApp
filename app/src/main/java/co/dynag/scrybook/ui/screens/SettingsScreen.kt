@@ -36,7 +36,7 @@ fun SettingsScreen(
     }
 
     val themes = listOf("system", "dark", "light")
-    val langues = listOf("fr", "en")
+    val langues = listOf("system", "fr", "en")
 
     Scaffold(
         topBar = {
@@ -109,10 +109,16 @@ fun SettingsScreen(
             Text(stringResource(R.string.settings_language), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 langues.forEach { lang ->
+                    val label = when(lang) {
+                        "system" -> stringResource(R.string.langue_system)
+                        "fr" -> stringResource(R.string.langue_fr)
+                        "en" -> stringResource(R.string.langue_en)
+                        else -> lang.uppercase()
+                    }
                     FilterChip(
                         selected = param.langue == lang,
                         onClick = { viewModel.update(param.copy(langue = lang)) },
-                        label = { Text(lang.uppercase()) }
+                        label = { Text(label) }
                     )
                 }
             }

@@ -13,8 +13,11 @@ import co.dynag.scrybook.ui.theme.ScryBookTheme
 import dagger.hilt.android.AndroidEntryPoint
 import java.io.File
 import javax.inject.Inject
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalConfiguration
+import java.util.Locale
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -32,8 +35,21 @@ class MainActivity : ComponentActivity() {
         setContent {
             val param by repository.currentParam.collectAsState()
             
-            ScryBookTheme(appTheme = param.theme) {
-                AppNavigation(openFilePath = openFilePath.value)
+            val configuration = LocalConfiguration.current
+            val locale = when (param.langue) {
+                "fr" -> Locale.FRENCH
+                "en" -> Locale.ENGLISH
+                else -> Locale.getDefault()
+            }
+            
+            val updatedConfig = configuration.apply {
+                setLocale(locale)
+            }
+
+            CompositionLocalProvider(LocalConfiguration provides updatedConfig) {
+                ScryBookTheme(appTheme = param.theme) {
+                    AppNavigation(openFilePath = openFilePath.value)
+                }
             }
         }
     }

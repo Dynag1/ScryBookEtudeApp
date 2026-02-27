@@ -89,6 +89,10 @@
     <string name="theme_dark">Sombre</string>
     <string name="theme_light">Clair</string>
 
+    <string name="langue_system">Défaut (système)</string>
+    <string name="langue_fr">Français</string>
+    <string name="langue_en">Anglais</string>
+
     <!-- Full Summary -->
     <string name="full_summary_title">Résumé complet</string>
     <string name="full_summary_no_resume">Pas de résumé</string>

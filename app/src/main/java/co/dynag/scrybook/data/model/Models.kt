@@ -40,7 +40,7 @@ data class Param(
     val police: String = "serif",
     val taille: String = "16",
     val saveTime: String = "30",
-    val langue: String = "fr",
+    val langue: String = "system",
     val theme: String = "system"
 )
 
