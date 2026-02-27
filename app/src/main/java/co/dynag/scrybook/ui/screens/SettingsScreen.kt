@@ -35,7 +35,7 @@ fun SettingsScreen(
         }
     }
 
-    val themes = listOf("dark", "light", "nord", "monokai", "dracula", "github_dark", "github_light")
+    val themes = listOf("system", "dark", "light")
     val langues = listOf("fr", "en")
 
     Scaffold(
@@ -123,10 +123,16 @@ fun SettingsScreen(
             Text(stringResource(R.string.settings_theme), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 themes.forEach { theme ->
+                    val label = when(theme) {
+                        "system" -> stringResource(R.string.theme_system)
+                        "dark" -> stringResource(R.string.theme_dark)
+                        "light" -> stringResource(R.string.theme_light)
+                        else -> theme
+                    }
                     FilterChip(
                         selected = param.theme == theme,
                         onClick = { viewModel.update(param.copy(theme = theme)) },
-                        label = { Text(theme.replaceFirstChar { it.uppercase() }.replace("_", " ")) }
+                        label = { Text(label) }
                     )
                 }
             }

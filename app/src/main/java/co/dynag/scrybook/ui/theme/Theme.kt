@@ -60,17 +60,23 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun ScryBookTheme(
+    appTheme: String = "system",
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val isDark = when (appTheme) {
+        "dark" -> true
+        "light" -> false
+        else -> darkTheme
+    }
+    val colorScheme = if (isDark) DarkColorScheme else LightColorScheme
 
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
             window.statusBarColor = colorScheme.background.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !isDark
         }
     }
 

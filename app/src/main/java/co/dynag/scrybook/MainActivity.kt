@@ -7,13 +7,19 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.mutableStateOf
+import co.dynag.scrybook.data.repository.ScryBookRepository
 import co.dynag.scrybook.ui.navigation.AppNavigation
 import co.dynag.scrybook.ui.theme.ScryBookTheme
 import dagger.hilt.android.AndroidEntryPoint
 import java.io.File
+import javax.inject.Inject
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject lateinit var repository: ScryBookRepository
 
     /** If set, the app opens this .sb file directly */
     val openFilePath = mutableStateOf<String?>(null)
@@ -24,7 +30,9 @@ class MainActivity : ComponentActivity() {
         handleIntent(intent)
 
         setContent {
-            ScryBookTheme {
+            val param by repository.currentParam.collectAsState()
+            
+            ScryBookTheme(appTheme = param.theme) {
                 AppNavigation(openFilePath = openFilePath.value)
             }
         }

@@ -35,6 +35,7 @@ import co.dynag.scrybook.ui.viewmodel.EditorViewModel
 import android.content.res.Configuration
 import androidx.compose.ui.platform.LocalConfiguration
 import java.util.Locale
+import androidx.compose.ui.graphics.toArgb
 
 @SuppressLint("SetJavaScriptEnabled")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -353,7 +354,17 @@ private fun EditorMainContent(
     onContentChanged: (String) -> Unit,
     onInsertImage: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    val bgColor = MaterialTheme.colorScheme.background
+    val onBgColor = MaterialTheme.colorScheme.onBackground
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val outlineColor = MaterialTheme.colorScheme.outlineVariant
+    
+    val bgColorHex = String.format("#%06X", (0xFFFFFF and bgColor.toArgb()))
+    val onBgColorHex = String.format("#%06X", (0xFFFFFF and onBgColor.toArgb()))
+    val primaryColorHex = String.format("#%06X", (0xFFFFFF and primaryColor.toArgb()))
+    val outlineColorHex = String.format("#%06X", (0xFFFFFF and outlineColor.toArgb()))
+
+    Column(modifier = Modifier.fillMaxSize().background(bgColor)) {
         // Formatting toolbar
         FormattingToolbar(webView = webView, onInsertImage = onInsertImage)
 
@@ -369,7 +380,7 @@ private fun EditorMainContent(
                     settings.domStorageEnabled = true
                     settings.allowFileAccess = true
                     settings.allowContentAccess = true
-                    setBackgroundColor(android.graphics.Color.parseColor("#0F1318"))
+                    setBackgroundColor(bgColor.toArgb())
                     
                     addJavascriptInterface(object {
                         @JavascriptInterface
@@ -388,7 +399,7 @@ private fun EditorMainContent(
                             }
                         }
                     }
-                    loadDataWithBaseURL(null, EDITOR_HTML, "text/html", "UTF-8", null)
+                    loadDataWithBaseURL(null, getEditorHtml(bgColorHex, onBgColorHex, primaryColorHex, outlineColorHex), "text/html", "UTF-8", null)
                     onWebViewCreated(this)
                 }
             },
@@ -485,7 +496,7 @@ private fun ToolbarTextButton(label: String, jsCommand: String, webView: WebView
     }
 }
 
-private val EDITOR_HTML = """
+private fun getEditorHtml(bgColor: String, textColor: String, accentColor: String, outlineColor: String): String = """
 <!DOCTYPE html>
 <html>
 <head>
@@ -496,8 +507,8 @@ private val EDITOR_HTML = """
     font-family: Georgia, serif;
     font-size: 19px;
     line-height: 1.6;
-    background: #0F1318;
-    color: #E8EAF0;
+    background: $bgColor;
+    color: $textColor;
     padding: 16px;
     min-height: 100vh;
     overflow-x: hidden;
@@ -505,11 +516,11 @@ private val EDITOR_HTML = """
   #editor {
     outline: none;
     min-height: 100%;
-    caret-color: #B0C8FF;
+    caret-color: $accentColor;
     word-wrap: break-word;
   }
-  h1 { text-align: center; font-size: 1.6em; margin: 1.2em 0 0.6em; color: #B0C8FF; }
-  h2 { text-align: center; font-size: 1.4em; margin: 1em 0 0.5em; border-bottom: 1px solid #333; padding-bottom: 4px; }
+  h1 { text-align: center; font-size: 1.6em; margin: 1.2em 0 0.6em; color: $accentColor; }
+  h2 { text-align: center; font-size: 1.4em; margin: 1em 0 0.5em; border-bottom: 1px solid $outlineColor; padding-bottom: 4px; }
   h3 { text-align: left; font-size: 1.2em; margin: 0.8em 0 0.4em; }
   p { margin-bottom: 0.8em; }
   ul, ol { margin-left: 20px; margin-bottom: 0.8em; }

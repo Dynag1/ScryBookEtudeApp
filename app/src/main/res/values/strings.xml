@@ -85,6 +85,9 @@
     <string name="settings_language">Langue</string>
     <string name="settings_theme">Thème</string>
     <string name="settings_saved">Paramètres enregistrés</string>
+    <string name="theme_system">Défaut (système)</string>
+    <string name="theme_dark">Sombre</string>
+    <string name="theme_light">Clair</string>
 
     <!-- Full Summary -->
     <string name="full_summary_title">Résumé complet</string>

@@ -41,7 +41,7 @@ data class Param(
     val taille: String = "16",
     val saveTime: String = "30",
     val langue: String = "fr",
-    val theme: String = "dark"
+    val theme: String = "system"
 )
 
 data class ProjectFile(
