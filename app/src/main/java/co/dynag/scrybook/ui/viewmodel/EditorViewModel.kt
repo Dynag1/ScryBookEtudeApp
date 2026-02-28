@@ -80,14 +80,18 @@ class EditorViewModel @Inject constructor(
         currentPath = projectPath
         currentChapterId = chapterId
         viewModelScope.launch {
-            repository.openProject(projectPath)
-            val ch = repository.getChapitre(chapterId)
-            _chapitre.value = ch
-            _htmlContent.value = ch?.contenuHtml ?: ""
-            lastContent = _htmlContent.value
-            
-            // Also load all chapters for the drawer
-            _chapitres.value = repository.getChapitres()
+            try {
+                repository.openProject(projectPath)
+                val ch = repository.getChapitre(chapterId)
+                _chapitre.value = ch
+                _htmlContent.value = ch?.contenuHtml ?: ""
+                lastContent = _htmlContent.value
+                
+                // Also load all chapters for the drawer
+                _chapitres.value = repository.getChapitres()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
@@ -107,10 +111,14 @@ class EditorViewModel @Inject constructor(
                     // Re-check after acquiring lock
                     if (contentToSave != lastContent) {
                         _isSaving.value = true
+                        android.util.Log.d("EditorVM", "Triggering save for chapter $idToSave")
                         repository.saveChapitreContenu(idToSave, contentToSave)
                         repository.syncBack() // Propagation vers le fichier d'origine
                         lastContent = contentToSave
                         _isSaving.value = false
+                        android.util.Log.d("EditorVM", "Save and sync complete")
+                    } else {
+                        android.util.Log.d("EditorVM", "Content unchanged, skipping save")
                     }
                 }
             }

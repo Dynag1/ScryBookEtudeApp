@@ -29,6 +29,27 @@ class ScryBookDatabase(context: Context, dbPath: String) :
         }
     }
 
+    override fun onConfigure(db: SQLiteDatabase) {
+        super.onConfigure(db)
+        try {
+            // Disable WAL mode to ensure all data is in the main .sb file for sync-back
+            db.disableWriteAheadLogging()
+            if (!db.isReadOnly) {
+                db.execSQL("PRAGMA journal_mode=DELETE")
+                db.execSQL("PRAGMA synchronous=FULL")
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    override fun onOpen(db: SQLiteDatabase) {
+        super.onOpen(db)
+        if (!db.isReadOnly) {
+            try { db.execSQL("PRAGMA journal_mode=DELETE") } catch (e: Exception) {}
+        }
+    }
+
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL("""
             CREATE TABLE IF NOT EXISTS $TABLE_CHAPITRE (
@@ -112,9 +133,11 @@ class ScryBookDatabase(context: Context, dbPath: String) :
     }
 
     fun saveChapitreContenu(id: Long, html: String) {
+        android.util.Log.d("ScryBookDB", "Saving chapter $id, content length: ${html.length}")
         val db = writableDatabase
         val cv = ContentValues().apply { put("contenu_html", html) }
-        db.update(TABLE_CHAPITRE, cv, "id=?", arrayOf(id.toString()))
+        val count = db.update(TABLE_CHAPITRE, cv, "id=?", arrayOf(id.toString()))
+        android.util.Log.d("ScryBookDB", "Update result: $count rows affected")
     }
 
     fun deleteChapitre(id: Long) {
@@ -213,5 +236,14 @@ class ScryBookDatabase(context: Context, dbPath: String) :
         }
         val rows = db.update(TABLE_PARAM, cv, "id=1", null)
         if (rows == 0) { cv.put("id", 1L); db.insert(TABLE_PARAM, null, cv) }
+    }
+
+    /** Force a checkpoint to ensure all data is in the main file */
+    fun checkpoint() {
+        try {
+            readableDatabase.rawQuery("PRAGMA wal_checkpoint(FULL)", null).use { it.moveToFirst() }
+        } catch (e: Exception) {
+            // Might fail if not in WAL mode, but it's okay.
+        }
     }
 }

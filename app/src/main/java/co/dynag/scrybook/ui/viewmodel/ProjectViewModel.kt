@@ -30,11 +30,16 @@ class ProjectViewModel @Inject constructor(
 
     fun loadProject(path: String) {
         viewModelScope.launch {
-            _isLoading.value = true
-            repository.openProject(path)
-            _chapitres.value = repository.getChapitres()
-            _info.value = repository.getInfo()
-            _isLoading.value = false
+            try {
+                _isLoading.value = true
+                repository.openProject(path)
+                _chapitres.value = repository.getChapitres()
+                _info.value = repository.getInfo()
+                _isLoading.value = false
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _isLoading.value = false
+            }
         }
     }
 

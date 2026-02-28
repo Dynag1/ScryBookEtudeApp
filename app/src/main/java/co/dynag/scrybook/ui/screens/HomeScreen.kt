@@ -86,41 +86,29 @@ fun HomeScreen(
             val uri = result.data?.data ?: return@rememberLauncherForActivityResult
             // Attempt to resolve real path or copy to persistent storage
             try {
-                var finalPath: String? = null
-                
-                // 1. Try to see if it's a file URI
-                if (uri.scheme == "file") {
-                    finalPath = uri.path
-                } else {
-                    // 2. Try to resolve via content resolver (for some local providers)
-                    val projection = arrayOf("_data")
-                    context.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
-                        if (cursor.moveToFirst()) {
-                            val columnIndex = cursor.getColumnIndex("_data")
-                            if (columnIndex != -1) {
-                                finalPath = cursor.getString(columnIndex)
-                            }
-                        }
-                    }
-                }
+                val destDir = java.io.File(viewModel.defaultProjectDir())
+                destDir.mkdirs()
+                val fileName = uri.lastPathSegment?.substringAfterLast('/') ?: "project.sb"
+                val destFile = java.io.File(destDir, fileName)
+                val finalPath = destFile.absolutePath
 
-                // 3. Fallback: Copy to persistent ScryBook folder (NOT cache)
-                if (finalPath == null || !File(finalPath!!).exists()) {
-                    val fileName = uri.lastPathSegment?.substringAfterLast('/') ?: "project.sb"
-                    val destDir = File(viewModel.defaultProjectDir())
-                    destDir.mkdirs()
-                    val destFile = File(destDir, fileName)
-                    
+                // Only copy if destination doesn't exist to avoid overwriting current work
+                if (!destFile.exists()) {
                     context.contentResolver.openInputStream(uri)?.use { input ->
                         destFile.outputStream().use { output -> input.copyTo(output) }
                     }
-                    finalPath = destFile.absolutePath
                 }
 
-                if (finalPath != null && java.io.File(finalPath!!).exists()) {
-                    viewModel.addToRecent(finalPath!!, uri.toString())
-                    onProjectOpen(finalPath!!)
-                }
+                // Take persistable permission if possible
+                try {
+                    context.contentResolver.takePersistableUriPermission(
+                        uri,
+                        android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                    )
+                } catch (e: Exception) { /* Not supported by all providers */ }
+
+                viewModel.addToRecent(finalPath, uri.toString())
+                onProjectOpen(finalPath)
             } catch (e: Exception) {
                 e.printStackTrace()
             }

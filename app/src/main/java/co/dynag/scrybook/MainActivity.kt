@@ -69,21 +69,39 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** Resolve a content: or file: URI to a local file path */
+    /** Resolve a content: or file: URI to a local persistent path */
     private fun resolveUri(uri: Uri): String? {
         // file:// scheme — direct path
         if (uri.scheme == "file") return uri.path
 
-        // content:// scheme — copy to app cache
+        // content:// scheme — copy to persistent storage
         try {
             val fileName = uri.lastPathSegment?.substringAfterLast('/') ?: "project.sb"
-            val cacheFile = File(cacheDir, fileName)
-            contentResolver.openInputStream(uri)?.use { input ->
-                cacheFile.outputStream().use { output ->
-                    input.copyTo(output)
+            val destDir = File(getExternalFilesDir("ScryBook"), "")
+            destDir.mkdirs()
+            val destFile = File(destDir, fileName)
+            
+            // Only copy if destination doesn't exist to avoid overwriting current local edits
+            if (!destFile.exists()) {
+                contentResolver.openInputStream(uri)?.use { input ->
+                    destFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
                 }
             }
-            return cacheFile.absolutePath
+            
+            // Take persistable permission if possible
+            try {
+                contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                )
+            } catch (e: Exception) { /* Not supported by all providers */ }
+
+            // Link the URI to the path so syncBack will work
+            repository.openProject(destFile.absolutePath, uri.toString())
+            
+            return destFile.absolutePath
         } catch (e: Exception) {
             e.printStackTrace()
             return null

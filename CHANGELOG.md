@@ -5,6 +5,12 @@ Toutes les modifications notables apportées au projet **ScryBook** seront docum
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 et ce projet adhère au [Versionnage Sémantique](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.8] - 2026-02-28
+
+### Fix
+- **Correction des Crashs** : Résolution d'un plantage lors de l'ouverture de projet et d'éventuels conflits de base de données.
+- **Sauvegarde Renforcée** : Amélioration de la persistance des fichiers lors de l'utilisation d'explorateurs de fichiers tiers.
+
 ## [0.1.6] - 2026-02-28
 
 ### Ajouté
