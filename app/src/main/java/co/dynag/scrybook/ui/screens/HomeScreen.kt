@@ -65,13 +65,14 @@ fun HomeScreen(
     var showPermissionRationale by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        val hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            Environment.isExternalStorageManager()
+        val hasPermission = if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
+            ContextCompat.checkSelfPermission(context, android.Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
         } else {
-            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+            // Android 11+ doesn't need READ_EXT if using its own dir + SAF
+            true 
         }
         
-        if (!hasPermission) {
+        if (!hasPermission && Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
             showPermissionRationale = true
         } else {
             viewModel.scanForProjects()
@@ -251,22 +252,13 @@ fun HomeScreen(
             confirmButton = {
                 Button(onClick = {
                     showPermissionRationale = false
-                    val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                        Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
-                            data = Uri.fromParts("package", context.packageName, null)
-                        }
-                    } else {
-                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                            data = Uri.fromParts("package", context.packageName, null)
-                        }
+                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.fromParts("package", context.packageName, null)
                     }
                     try {
                         context.startActivity(intent)
                     } catch (e: Exception) {
-                        // Fallback in case package data URI fails on some devices
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                           context.startActivity(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
-                        }
+                        e.printStackTrace()
                     }
                 }) { Text(stringResource(R.string.perm_settings)) }
             },
