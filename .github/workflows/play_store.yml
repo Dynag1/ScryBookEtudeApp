@@ -32,11 +32,38 @@ jobs:
             -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
             -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
 
-      - name: Create Service Account JSON
+      - name: Create and Validate Service Account JSON
+        shell: python
+        env:
+          SECRET_CONTENT: ${{ secrets.PLAY_CONFIG_JSON }}
         run: |
-          cat <<'EOF' > service_account.json
-          ${{ secrets.PLAY_CONFIG_JSON }}
-          EOF
+          import os, json, base64, sys
+          content = os.environ.get('SECRET_CONTENT', '').strip()
+          if not content:
+              print("ERREUR : Le secret PLAY_CONFIG_JSON est vide !")
+              sys.exit(1)
+          
+          # 1. Essai en JSON direct
+          try:
+              data = json.loads(content)
+              with open('service_account.json', 'w') as f:
+                  json.dump(data, f)
+              print("JSON valide détecté.")
+              sys.exit(0)
+          except Exception:
+              pass
+          
+          # 2. Essai en Base64
+          try:
+              decoded = base64.b64decode(content).decode('utf-8')
+              data = json.loads(decoded)
+              with open('service_account.json', 'w') as f:
+                  json.dump(data, f)
+              print("Base64 valide détecté.")
+              sys.exit(0)
+          except Exception:
+              print("ERREUR : Le secret n'est ni un JSON valide, ni un Base64 valide.")
+              sys.exit(1)
 
       - name: Upload to Play Store
         uses: r0adkll/upload-google-play@v1
