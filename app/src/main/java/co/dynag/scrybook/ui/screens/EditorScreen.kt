@@ -184,7 +184,8 @@ fun EditorScreen(
                                 }
                                 sr.startListening(intent)
                             }
-                        }
+                        },
+                        onSave = { viewModel.saveNow() }
                     )
                 }
             ) { innerPadding ->
@@ -256,7 +257,8 @@ fun EditorScreen(
                             }
                             sr.startListening(intent)
                         }
-                    }
+                    },
+                    onSave = { viewModel.saveNow() }
                 )
             }
         ) { innerPadding ->
@@ -342,12 +344,18 @@ private fun EditorTopAppBar(
     isTtsPlaying: Boolean,
     ttsReady: Boolean,
     isSttListening: Boolean,
-    onToggleStt: () -> Unit
+    onToggleStt: () -> Unit,
+    onSave: () -> Unit
 ) {
     TopAppBar(
         navigationIcon = {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.action_back))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.action_back))
+                }
+                IconButton(onClick = onSave) {
+                    Icon(Icons.Default.Save, contentDescription = "Sauvegarder", tint = MaterialTheme.colorScheme.primary)
+                }
             }
         },
         title = {

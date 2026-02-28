@@ -5,6 +5,12 @@ Toutes les modifications notables apportées au projet **ScryBook** seront docum
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 et ce projet adhère au [Versionnage Sémantique](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.5] - 2026-02-28
+
+### Ajouté
+- **Bouton Sauvegarde Manuelle** : Ajout d'une icône de sauvegarde dans la barre de titre pour forcer l'enregistrement immédiat.
+- **Support des caractères spéciaux** : Amélioration de la gestion des caractères dans le JSON de configuration du Play Store.
+
 ## [0.1.4] - 2026-02-28
 
 ### Ajouté
