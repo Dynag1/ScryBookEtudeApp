@@ -33,9 +33,10 @@ jobs:
             -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
 
       - name: Create Service Account JSON
-        run: echo "${{ secrets.PLAY_CONFIG_JSON }}" | base64 --decode > service_account.json
-        # Note: If you prefer PASTE the JSON directly (not base64), 
-        # use: echo '${{ secrets.PLAY_CONFIG_JSON }}' > service_account.json
+        run: |
+          cat <<'EOF' > service_account.json
+          ${{ secrets.PLAY_CONFIG_JSON }}
+          EOF
 
       - name: Upload to Play Store
         uses: r0adkll/upload-google-play@v1
