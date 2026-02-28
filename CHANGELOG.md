@@ -5,6 +5,13 @@ Toutes les modifications notables apportées au projet **ScryBook** seront docum
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 et ce projet adhère au [Versionnage Sémantique](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.6] - 2026-02-28
+
+### Ajouté
+- **Modification Directe (Edit in Place)** : L'application synchronise désormais automatiquement les modifications vers le fichier d'origine, même s'il est situé dans un dossier protégé (Documents, Google Drive, etc.).
+- **Accès Complet aux Fichiers** : Ajout du support de l'autorisation "Accès à tous les fichiers" (Android 11+) pour un meilleur contrôle sur vos dossiers de projets.
+- **Diagnostic de Déploiement** : Amélioration des logs GitHub Actions pour faciliter le débogage de la configuration Google Play.
+
 ## [0.1.5] - 2026-02-28
 
 ### Ajouté
