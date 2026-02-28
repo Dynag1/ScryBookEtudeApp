@@ -9,10 +9,15 @@ import co.dynag.scrybook.data.model.Chapitre
 import co.dynag.scrybook.data.repository.ScryBookRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import java.util.Locale
 import javax.inject.Inject
 
@@ -46,6 +51,7 @@ class EditorViewModel @Inject constructor(
 
     // Autosave timer
     private var lastContent = ""
+    private val saveMutex = Mutex()
 
     init {
         tts = TextToSpeech(context, this)
@@ -66,6 +72,11 @@ class EditorViewModel @Inject constructor(
     }
 
     fun loadChapitre(projectPath: String, chapterId: Long) {
+        // Save previous content if needed before switching
+        if (currentChapterId != 0L && _htmlContent.value != lastContent) {
+            saveNow()
+        }
+
         currentPath = projectPath
         currentChapterId = chapterId
         viewModelScope.launch {
@@ -85,13 +96,22 @@ class EditorViewModel @Inject constructor(
     }
 
     fun saveNow() {
+        val idToSave = currentChapterId
+        if (idToSave == 0L) return
+        val contentToSave = _htmlContent.value
+        if (contentToSave == lastContent) return
+
         viewModelScope.launch {
-            if (_htmlContent.value != lastContent) {
-                _isSaving.value = true
-                repository.saveChapitreContenu(currentChapterId, _htmlContent.value)
-                lastContent = _htmlContent.value
-                _isSaving.value = false
-                // Update the chapter object in the list if needed (though contents are not in list)
+            withContext(Dispatchers.IO + NonCancellable) {
+                saveMutex.withLock {
+                    // Re-check after acquiring lock
+                    if (contentToSave != lastContent) {
+                        _isSaving.value = true
+                        repository.saveChapitreContenu(idToSave, contentToSave)
+                        lastContent = contentToSave
+                        _isSaving.value = false
+                    }
+                }
             }
         }
     }

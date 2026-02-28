@@ -24,6 +24,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import android.Manifest
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import androidx.hilt.navigation.compose.hiltViewModel
 import co.dynag.scrybook.R
 import co.dynag.scrybook.ui.viewmodel.HomeViewModel
@@ -51,6 +57,35 @@ fun HomeScreen(
         error?.let {
             snackbarHostState.showSnackbar(it, duration = SnackbarDuration.Long)
             viewModel.clearError()
+        }
+    }
+
+    // Permission launcher
+    val storagePermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        // Android 13+ doesn't use READ_EXTERNAL_STORAGE for general files in the same way,
+        // but we might need specific ones for media. For .sb files, SAF is preferred.
+        null 
+    } else {
+        Manifest.permission.READ_EXTERNAL_STORAGE
+    }
+
+    var showPermissionRationale by remember { mutableStateOf(false) }
+
+    val pLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (!isGranted) {
+            showPermissionRationale = true
+        } else {
+            viewModel.scanForProjects()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        storagePermission?.let {
+            if (ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED) {
+                pLauncher.launch(it)
+            }
         }
     }
 
@@ -178,6 +213,28 @@ fun HomeScreen(
                 }) { Text(stringResource(R.string.action_create)) }
             },
             dismissButton = { TextButton(onClick = { showCreateDialog = false }) { Text(stringResource(R.string.action_cancel)) } }
+        )
+    }
+
+    if (showPermissionRationale) {
+        AlertDialog(
+            onDismissRequest = { showPermissionRationale = false },
+            title = { Text(stringResource(R.string.perm_storage_title)) },
+            text = { Text(stringResource(R.string.perm_storage_desc)) },
+            confirmButton = {
+                Button(onClick = {
+                    showPermissionRationale = false
+                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.fromParts("package", context.packageName, null)
+                    }
+                    context.startActivity(intent)
+                }) { Text(stringResource(R.string.perm_settings)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPermissionRationale = false }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            }
         )
     }
 }

@@ -36,6 +36,9 @@ import android.content.res.Configuration
 import androidx.compose.ui.platform.LocalConfiguration
 import java.util.Locale
 import androidx.compose.ui.graphics.toArgb
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.ui.platform.LocalLifecycleOwner
 
 @SuppressLint("SetJavaScriptEnabled")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -103,6 +106,20 @@ fun EditorScreen(
         onDispose { viewModel.saveNow() }
     }
 
+    // Save on pause/stop (app close or background)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_PAUSE || event == Lifecycle.Event.ON_STOP) {
+                viewModel.saveNow()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     if (showPermanentUI) {
         PermanentNavigationDrawer(
             drawerContent = {
@@ -112,7 +129,10 @@ fun EditorScreen(
                 ) {
                     ProjectDrawerContent(
                         chapitres = chapitres,
-                        onChapterOpen = { id -> onChapterOpen?.invoke(id) },
+                        onChapterOpen = { id -> 
+                            viewModel.saveNow()
+                            onChapterOpen?.invoke(id) 
+                        },
                         onNewChapter = { showNewChapterDialog = true },
                         selectedId = chapterId,
                         onHeaderClick = { viewModel.saveNow(); onBack() }
@@ -271,6 +291,7 @@ fun EditorScreen(
             confirmButton = {
                 Button(onClick = {
                     if (newChapNom.isNotBlank()) {
+                        viewModel.saveNow()
                         viewModel.addChapitre(newChapNom, newChapNum, newChapResume)
                         showNewChapterDialog = false
                     }
@@ -298,6 +319,7 @@ fun EditorScreen(
                 },
                 confirmButton = {
                     Button(onClick = {
+                        viewModel.saveNow()
                         viewModel.updateChapitreInfo(ch.id, editNom, editNum, editResume)
                         showEditChapterDialog = false
                     }) { Text(stringResource(R.string.action_save)) }

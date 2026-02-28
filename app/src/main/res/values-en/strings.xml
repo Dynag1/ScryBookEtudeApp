@@ -97,4 +97,9 @@
     <string name="full_summary_title">Full Summary</string>
     <string name="full_summary_no_resume">No summary</string>
     <string name="full_summary_word_count">%1$d words</string>
+    
+    <!-- Permissions -->
+    <string name="perm_storage_title">Storage Permission</string>
+    <string name="perm_storage_desc">ScryBook needs access to your files to open and save your .sb projects in your chosen folder.</string>
+    <string name="perm_settings">Settings</string>
 </resources>
