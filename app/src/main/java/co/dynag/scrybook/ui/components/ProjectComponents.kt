@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import co.dynag.scrybook.R
@@ -140,7 +141,8 @@ fun SummaryPanel(
                         Text(
                             text = resume,
                             style = MaterialTheme.typography.bodyMedium,
-                            lineHeight = androidx.compose.ui.unit.TextUnit.Unspecified // Default
+                            textAlign = TextAlign.Justify,
+                            lineHeight = androidx.compose.ui.unit.TextUnit.Unspecified
                         )
                     }
                 }

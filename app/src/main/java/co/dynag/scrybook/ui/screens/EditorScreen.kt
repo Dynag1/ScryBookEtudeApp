@@ -498,9 +498,8 @@ private fun FormattingToolbar(webView: WebView?, onInsertImage: () -> Unit) {
             
             item { VerticalDivider(modifier = Modifier.height(24.dp).padding(horizontal = 4.dp)) }
             
-            item { ToolbarTextButton("H1", "document.execCommand('formatBlock', false, 'H1');", webView) }
-            item { ToolbarTextButton("H2", "document.execCommand('formatBlock', false, 'H2');", webView) }
-            item { ToolbarTextButton("H3", "document.execCommand('formatBlock', false, 'H3');", webView) }
+            item { ToolbarTextButton("T1", "document.execCommand('formatBlock', false, '<h1>');", webView) }
+            item { ToolbarTextButton("T2", "document.execCommand('formatBlock', false, '<h2>');", webView) }
             
             item { VerticalDivider(modifier = Modifier.height(24.dp).padding(horizontal = 4.dp)) }
             
@@ -565,8 +564,9 @@ private fun getEditorHtml(bgColor: String, textColor: String, accentColor: Strin
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: Georgia, serif;
-    font-size: 19px;
+    font-size: 12px;
     line-height: 1.6;
+    text-align: justify;
     background: $bgColor;
     color: $textColor;
     padding: 16px;
@@ -579,9 +579,9 @@ private fun getEditorHtml(bgColor: String, textColor: String, accentColor: Strin
     caret-color: $accentColor;
     word-wrap: break-word;
   }
-  h1 { text-align: center; font-size: 1.6em; margin: 1.2em 0 0.6em; color: $accentColor; }
-  h2 { text-align: center; font-size: 1.4em; margin: 1em 0 0.5em; border-bottom: 1px solid $outlineColor; padding-bottom: 4px; }
-  h3 { text-align: left; font-size: 1.2em; margin: 0.8em 0 0.4em; }
+  h1 { display: block; text-align: center; font-size: 20px !important; font-weight: normal; margin: 2em 0 1.5em; color: $accentColor; }
+  h1 * { font-size: 20px !important; }
+  h2 { display: block; text-align: left; font-size: 14px !important; font-weight: bold; text-decoration: underline; margin: 1em 0 0.5em; }
   p { margin-bottom: 0.8em; }
   ul, ol { margin-left: 20px; margin-bottom: 0.8em; }
   img { max-width: 100%; height: auto; display: block; margin: 10px auto; border-radius: 4px; }
