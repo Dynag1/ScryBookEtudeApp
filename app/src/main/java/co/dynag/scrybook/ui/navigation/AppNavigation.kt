@@ -61,7 +61,7 @@ fun AppNavigation(openFilePath: String? = null) {
                 onFullSummaryOpen = {
                     navController.navigate(Screen.FullSummary.createRoute(projectPath))
                 },
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack(Screen.Home.route, inclusive = false) }
             )
         }
 
@@ -78,7 +78,7 @@ fun AppNavigation(openFilePath: String? = null) {
             EditorScreen(
                 projectPath = projectPath,
                 chapterId = chapterId,
-                onBack = { navController.popBackStack() },
+                onBack = { navController.popBackStack(Screen.Project.route, inclusive = false) },
                 onChapterOpen = { newId ->
                     navController.navigate(Screen.Editor.createRoute(projectPath, newId)) {
                         // Replace current if same destination but different ID (optional, but keep default stack for now)

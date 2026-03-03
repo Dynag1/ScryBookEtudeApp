@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
@@ -100,6 +101,11 @@ fun EditorScreen(
 
     LaunchedEffect(projectPath, chapterId) {
         viewModel.loadChapitre(projectPath, chapterId)
+    }
+
+    BackHandler {
+        viewModel.saveNow()
+        onBack()
     }
 
     // Save on back
@@ -559,7 +565,11 @@ private fun ToolbarTextButton(label: String, jsCommand: String, webView: WebView
     }
 }
 
-private fun getEditorHtml(bgColor: String, textColor: String, accentColor: String, outlineColor: String, fontSize: String): String = """
+private fun getEditorHtml(bgColor: String, textColor: String, accentColor: String, outlineColor: String, fontSize: String): String {
+    val baseSize = fontSize.toIntOrNull() ?: 14
+    val h1Size = baseSize + 6
+    val h2Size = baseSize + 2
+    return """
 <!DOCTYPE html>
 <html>
 <head>
@@ -586,10 +596,10 @@ private fun getEditorHtml(bgColor: String, textColor: String, accentColor: Strin
   #editor * {
     font-size: inherit;
   }
-  h1 { display: block; text-align: center; font-size: 20px !important; font-weight: normal; margin: 2em 0 1.5em; color: $accentColor; }
-  h1 * { font-size: 20px !important; }
-  h2 { display: block; text-align: left; font-size: 14px !important; font-weight: bold; text-decoration: underline; margin: 1em 0 0.5em; }
-  h2 * { font-size: 14px !important; }
+  h1 { display: block !important; text-align: center; font-size: ${h1Size}px !important; font-weight: normal; margin-top: 1em !important; margin-bottom: 0.5em !important; color: $accentColor; }
+  h1 * { font-size: ${h1Size}px !important; }
+  h2 { display: block !important; text-align: left; font-size: ${h2Size}px !important; font-weight: bold; text-decoration: underline; margin-top: 1em !important; margin-bottom: 0.5em !important; margin-left: 2em !important; }
+  h2 * { font-size: ${h2Size}px !important; }
   p { margin-bottom: 0.8em; font-size: ${fontSize}px !important; }
   p * { font-size: ${fontSize}px !important; }
   ul, ol { margin-left: 20px; margin-bottom: 0.8em; }
@@ -635,3 +645,4 @@ private fun getEditorHtml(bgColor: String, textColor: String, accentColor: Strin
 </body>
 </html>
 """.trimIndent()
+}

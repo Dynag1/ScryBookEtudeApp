@@ -1,6 +1,7 @@
 package co.dynag.scrybook.ui.screens
 
 import android.content.res.Configuration
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -68,6 +69,14 @@ fun ProjectScreen(
     val showPermanentUI = isLandscape || isTablet
 
     LaunchedEffect(projectPath) { viewModel.loadProject(projectPath) }
+
+    BackHandler {
+        if (drawerState.isOpen) {
+            scope.launch { drawerState.close() }
+        } else {
+            onBack()
+        }
+    }
 
     LaunchedEffect(exportResult) {
         exportResult?.let { result ->
