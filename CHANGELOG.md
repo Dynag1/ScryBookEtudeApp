@@ -5,6 +5,17 @@ Toutes les modifications notables apportées au projet **ScryBook** seront docum
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 et ce projet adhère au [Versionnage Sémantique](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.4] - 2026-03-03
+
+### Ajouté
+- **Barre de bas (Bottom Bar)** : Ajout d'une barre en bas sur tous les écrans pour une meilleure cohérence visuelle.
+- **Optimisation Paysage** : La barre est plus haute en mode paysage pour un meilleur confort visuel sur les écrans larges.
+
+## [0.2.3] - 2026-03-03
+
+### Changé
+- **Branding** : Mise à jour de l'identité visuelle et préparation pour le Play Store.
+
 ## [0.1.9] - 2026-02-28
 
 ### Fix
@@ -70,4 +81,4 @@ et ce projet adhère au [Versionnage Sémantique](https://semver.org/spec/v2.0.0
 - **Export PDF** : Première version de l'exportation du manuscrit au format PDF.
 
 ---
-*Dernière mise à jour : 28 février 2026*
+*Dernière mise à jour : 3 mars 2026*
