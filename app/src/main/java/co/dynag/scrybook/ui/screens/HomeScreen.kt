@@ -87,6 +87,7 @@ fun HomeScreen(
         if (result.resultCode == Activity.RESULT_OK) {
             val uri = result.data?.data ?: return@rememberLauncherForActivityResult
             // Attempt to resolve real path or copy to persistent storage
+            try {
                 val finalPath: String
                 
                 // Try to get direct path
