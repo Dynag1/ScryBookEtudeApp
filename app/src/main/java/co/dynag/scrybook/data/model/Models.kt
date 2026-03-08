@@ -47,5 +47,6 @@ data class Param(
 data class ProjectFile(
     val name: String,
     val path: String,
-    val lastModified: Long
+    val lastModified: Long,
+    val originalUri: String? = null
 )

@@ -53,7 +53,6 @@ class ProjectViewModel @Inject constructor(
     fun addChapitre(nom: String, numero: String, resume: String) {
         viewModelScope.launch {
             repository.insertChapitre(nom, numero, resume)
-            repository.syncBack()
             _chapitres.value = repository.getChapitres()
             _showNewChapterDialog.value = false
         }
@@ -62,7 +61,6 @@ class ProjectViewModel @Inject constructor(
     fun deleteChapitre(id: Long) {
         viewModelScope.launch {
             repository.deleteChapitre(id)
-            repository.syncBack()
             _chapitres.value = repository.getChapitres()
         }
     }
@@ -73,7 +71,6 @@ class ProjectViewModel @Inject constructor(
     fun updateChapitreInfo(id: Long, nom: String, numero: String, resume: String) {
         viewModelScope.launch {
             repository.updateChapitre(id, nom, numero, resume)
-            repository.syncBack()
             _chapitres.value = repository.getChapitres()
         }
     }

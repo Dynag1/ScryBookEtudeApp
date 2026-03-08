@@ -92,7 +92,8 @@ class HomeViewModel @Inject constructor(
                                 .filter { it.isFile && it.extension == "sb" }
                                 .forEach { file ->
                                     if (found.none { it.path == file.absolutePath }) {
-                                        found.add(ProjectFile(file.nameWithoutExtension, file.absolutePath, file.lastModified()))
+                                        val uri = getUriForPath(file.absolutePath)
+                                        found.add(co.dynag.scrybook.data.model.ProjectFile(file.nameWithoutExtension, file.absolutePath, file.lastModified(), uri))
                                     }
                                 }
                         } catch (_: Exception) {}
@@ -108,7 +109,8 @@ class HomeViewModel @Inject constructor(
                     if (file.exists()) {
                         validRecents.add(path)
                         if (found.none { it.path == file.absolutePath }) {
-                            found.add(ProjectFile(file.nameWithoutExtension, file.absolutePath, file.lastModified()))
+                            val uri = getUriForPath(file.absolutePath)
+                            found.add(co.dynag.scrybook.data.model.ProjectFile(file.nameWithoutExtension, file.absolutePath, file.lastModified(), uri))
                         }
                     }
                 }
@@ -147,4 +149,29 @@ class HomeViewModel @Inject constructor(
 
     fun formatDate(timestamp: Long): String =
         SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(timestamp))
+
+    fun getRealPathFromUri(uri: android.net.Uri): String? {
+        if (uri.scheme == "file") return uri.path
+        if (uri.scheme == "content") {
+            if (android.provider.DocumentsContract.isDocumentUri(context, uri)) {
+                if ("com.android.externalstorage.documents" == uri.authority) {
+                    val docId = android.provider.DocumentsContract.getDocumentId(uri)
+                    val split = docId.split(":")
+                    if (split.size >= 2 && "primary".equals(split[0], ignoreCase = true)) {
+                        return android.os.Environment.getExternalStorageDirectory().toString() + "/" + split[1]
+                    }
+                }
+            }
+            try {
+                val cursor = context.contentResolver.query(uri, arrayOf("_data"), null, null, null)
+                cursor?.use {
+                    if (it.moveToFirst()) {
+                        val idx = it.getColumnIndex("_data")
+                        if (idx != -1) return it.getString(idx)
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+        return null
+    }
 }

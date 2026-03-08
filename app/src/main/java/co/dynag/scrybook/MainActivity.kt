@@ -62,6 +62,17 @@ class MainActivity : ComponentActivity() {
     private fun handleIntent(intent: Intent?) {
         if (intent?.action == Intent.ACTION_VIEW) {
             val uri = intent.data ?: return
+            
+            // Try to resolve a real path before copying
+            val realPath = getRealPathFromUri(uri)
+            if (realPath != null && File(realPath).exists() && File(realPath).canWrite()) {
+                android.util.Log.d("MainActivity", "Using direct path: $realPath")
+                repository.openProject(realPath)
+                openFilePath.value = realPath
+                return
+            }
+
+            // Otherwise, use the resolver which might copy it
             val path = resolveUri(uri)
             if (path != null && path.endsWith(".sb")) {
                 openFilePath.value = path
@@ -71,8 +82,12 @@ class MainActivity : ComponentActivity() {
 
     /** Resolve a content: or file: URI to a local persistent path */
     private fun resolveUri(uri: Uri): String? {
-        // file:// scheme — direct path
-        if (uri.scheme == "file") return uri.path
+        // Already handled file:// in handleIntent calling getRealPathFromUri
+        val directPath = getRealPathFromUri(uri)
+        if (directPath != null && File(directPath).exists() && File(directPath).canWrite()) {
+            repository.openProject(directPath)
+            return directPath
+        }
 
         // content:// scheme — copy to persistent storage
         try {
@@ -81,12 +96,11 @@ class MainActivity : ComponentActivity() {
             destDir.mkdirs()
             val destFile = File(destDir, fileName)
             
-            // Only copy if destination doesn't exist to avoid overwriting current local edits
-            if (!destFile.exists()) {
-                contentResolver.openInputStream(uri)?.use { input ->
-                    destFile.outputStream().use { output ->
-                        input.copyTo(output)
-                    }
+            // Always refresh from original if it's an Intent open
+            // This ensures we have the latest version from cloud sync
+            contentResolver.openInputStream(uri)?.use { input ->
+                destFile.outputStream().use { output ->
+                    input.copyTo(output)
                 }
             }
             
@@ -106,5 +120,34 @@ class MainActivity : ComponentActivity() {
             e.printStackTrace()
             return null
         }
+    }
+
+    private fun getRealPathFromUri(uri: Uri): String? {
+        if (uri.scheme == "file") return uri.path
+        
+        if (uri.scheme == "content") {
+            // 1. Try DocumentContract
+            if (android.provider.DocumentsContract.isDocumentUri(this, uri)) {
+                if ("com.android.externalstorage.documents" == uri.authority) {
+                    val docId = android.provider.DocumentsContract.getDocumentId(uri)
+                    val split = docId.split(":")
+                    if (split.size >= 2 && "primary".equals(split[0], ignoreCase = true)) {
+                        return android.os.Environment.getExternalStorageDirectory().toString() + "/" + split[1]
+                    }
+                }
+            }
+            
+            // 2. Try _data column
+            try {
+                val cursor = contentResolver.query(uri, arrayOf("_data"), null, null, null)
+                cursor?.use {
+                    if (it.moveToFirst()) {
+                        val idx = it.getColumnIndex("_data")
+                        if (idx != -1) return it.getString(idx)
+                    }
+                }
+            } catch (e: Exception) {}
+        }
+        return null
     }
 }

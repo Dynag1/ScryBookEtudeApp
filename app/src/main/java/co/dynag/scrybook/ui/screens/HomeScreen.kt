@@ -87,15 +87,20 @@ fun HomeScreen(
         if (result.resultCode == Activity.RESULT_OK) {
             val uri = result.data?.data ?: return@rememberLauncherForActivityResult
             // Attempt to resolve real path or copy to persistent storage
-            try {
-                val destDir = java.io.File(viewModel.defaultProjectDir())
-                destDir.mkdirs()
-                val fileName = uri.lastPathSegment?.substringAfterLast('/') ?: "project.sb"
-                val destFile = java.io.File(destDir, fileName)
-                val finalPath = destFile.absolutePath
+                val finalPath: String
+                
+                // Try to get direct path
+                val directFile = viewModel.getRealPathFromUri(uri)?.let { java.io.File(it) }
+                if (directFile != null && directFile.exists() && directFile.canWrite()) {
+                    finalPath = directFile.absolutePath
+                } else {
+                    val destDir = java.io.File(viewModel.defaultProjectDir())
+                    destDir.mkdirs()
+                    val fileName = uri.lastPathSegment?.substringAfterLast('/') ?: "project.sb"
+                    val destFile = java.io.File(destDir, fileName)
+                    finalPath = destFile.absolutePath
 
-                // Only copy if destination doesn't exist to avoid overwriting current work
-                if (!destFile.exists()) {
+                    // Always refresh from original
                     context.contentResolver.openInputStream(uri)?.use { input ->
                         destFile.outputStream().use { output -> input.copyTo(output) }
                     }
@@ -200,8 +205,8 @@ fun HomeScreen(
                 else -> {
                     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         items(projects) { project ->
-                            ProjectCard(project.name, project.path, viewModel.formatDate(project.lastModified), onClick = { 
-                                viewModel.addToRecent(project.path)
+                            ProjectCard(project.name, project.originalUri ?: project.path, viewModel.formatDate(project.lastModified), onClick = { 
+                                viewModel.addToRecent(project.path, project.originalUri)
                                 onProjectOpen(project.path) 
                             })
                         }

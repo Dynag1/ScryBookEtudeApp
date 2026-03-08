@@ -118,7 +118,6 @@ class EditorViewModel @Inject constructor(
                         _isSaving.value = true
                         android.util.Log.d("EditorVM", "Triggering save for chapter $idToSave")
                         repository.saveChapitreContenu(idToSave, contentToSave)
-                        repository.syncBack() // Propagation vers le fichier d'origine
                         lastContent = contentToSave
                         _isSaving.value = false
                         android.util.Log.d("EditorVM", "Save and sync complete")
