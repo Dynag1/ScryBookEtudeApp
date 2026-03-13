@@ -38,6 +38,7 @@ fun SettingsScreen(
 
     val themes = listOf("system", "dark", "light")
     val langues = listOf("system", "fr", "en")
+    val formats = listOf("A4", "A5", "Poche")
 
     Scaffold(
         topBar = {
@@ -87,6 +88,20 @@ fun SettingsScreen(
                     val cur = (param.taille.toIntOrNull() ?: 16)
                     if (cur < 48) viewModel.update(param.copy(taille = (cur + 1).toString()))
                 }) { Icon(Icons.Default.Add, null) }
+            }
+
+            Divider()
+
+            // Format de page
+            Text(stringResource(R.string.settings_page_format), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                formats.forEach { fmt ->
+                    FilterChip(
+                        selected = param.format == fmt,
+                        onClick = { viewModel.update(param.copy(format = fmt)) },
+                        label = { Text(if (fmt == "Poche") "Livre de poche" else fmt) }
+                    )
+                }
             }
 
             Divider()

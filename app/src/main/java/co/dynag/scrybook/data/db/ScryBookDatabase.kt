@@ -15,7 +15,7 @@ class ScryBookDatabase(context: Context, dbPath: String) :
     SQLiteOpenHelper(context, dbPath, null, DB_VERSION) {
 
     companion object {
-        const val DB_VERSION = 1
+        const val DB_VERSION = 2
 
         // Table names
         const val TABLE_CHAPITRE = "chapitre"
@@ -78,7 +78,7 @@ class ScryBookDatabase(context: Context, dbPath: String) :
         db.execSQL("""
             CREATE TABLE IF NOT EXISTS $TABLE_PARAM (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                police TEXT, taille TEXT, save_time TEXT, langue TEXT, theme TEXT, lic TEXT
+                police TEXT, taille TEXT, save_time TEXT, langue TEXT, theme TEXT, lic TEXT, format TEXT DEFAULT 'A4'
             )""")
 
         // Insert default rows
@@ -87,7 +87,13 @@ class ScryBookDatabase(context: Context, dbPath: String) :
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        // Future migrations here
+        if (oldVersion < 2) {
+            try {
+                db.execSQL("ALTER TABLE $TABLE_PARAM ADD COLUMN format TEXT DEFAULT 'A4'")
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
     // ─── Chapitres ──────────────────────────────────────────────────────────
@@ -222,9 +228,17 @@ class ScryBookDatabase(context: Context, dbPath: String) :
 
     fun getParam(): Param {
         val cursor = readableDatabase.rawQuery(
-            "SELECT id, COALESCE(police,'serif'), COALESCE(taille,'16'), COALESCE(save_time,'30'), COALESCE(langue,'fr'), COALESCE(theme,'dark') FROM $TABLE_PARAM WHERE id=1", null)
+            "SELECT id, COALESCE(police,'serif'), COALESCE(taille,'16'), COALESCE(save_time,'30'), COALESCE(langue,'fr'), COALESCE(theme,'dark'), COALESCE(format, 'A4') FROM $TABLE_PARAM WHERE id=1", null)
         return if (cursor.moveToFirst()) {
-            Param(cursor.getLong(0), cursor.getString(1), cursor.getString(2), cursor.getString(3), cursor.getString(4), cursor.getString(5)).also { cursor.close() }
+            Param(
+                cursor.getLong(0),
+                cursor.getString(1) ?: "serif",
+                cursor.getString(2) ?: "16",
+                cursor.getString(3) ?: "30",
+                cursor.getString(4) ?: "fr",
+                cursor.getString(5) ?: "dark",
+                cursor.getString(6) ?: "A4"
+            ).also { cursor.close() }
         } else { cursor.close(); Param() }
     }
 
@@ -232,7 +246,8 @@ class ScryBookDatabase(context: Context, dbPath: String) :
         val db = writableDatabase
         val cv = ContentValues().apply {
             put("police", param.police); put("taille", param.taille)
-            put("save_time", param.saveTime); put("langue", param.langue); put("theme", param.theme)
+            put("save_time", param.saveTime); put("langue", param.langue)
+            put("theme", param.theme); put("format", param.format)
         }
         val rows = db.update(TABLE_PARAM, cv, "id=1", null)
         if (rows == 0) { cv.put("id", 1L); db.insert(TABLE_PARAM, null, cv) }

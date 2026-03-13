@@ -148,6 +148,13 @@ class EditorViewModel @Inject constructor(
         }
     }
 
+    fun deleteChapitre(id: Long, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            repository.deleteChapitre(id)
+            onSuccess()
+        }
+    }
+
     private fun startAutoSave() {
         viewModelScope.launch {
             while (true) {

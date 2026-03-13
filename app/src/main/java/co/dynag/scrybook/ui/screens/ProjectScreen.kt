@@ -2,6 +2,8 @@ package co.dynag.scrybook.ui.screens
 
 import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -58,6 +60,14 @@ fun ProjectScreen(
     var newChapResume by remember { mutableStateOf("") }
     var chapterToDelete by remember { mutableStateOf<Chapitre?>(null) }
     var chapterToEdit by remember { mutableStateOf<Chapitre?>(null) }
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/pdf")
+    ) { uri ->
+        uri?.let {
+            exportViewModel.exportBookPdf(projectPath, it)
+        }
+    }
 
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -119,9 +129,8 @@ fun ProjectScreen(
                         onBack = onBack,
                         onDrawerOpen = { scope.launch { drawerState.open() } },
                         onExport = {
-                            val outDir = context.getExternalFilesDir("exports") ?: context.filesDir
                             val fileName = (info.titre.ifBlank { File(projectPath).nameWithoutExtension }) + ".pdf"
-                            exportViewModel.exportBookPdf(projectPath, File(outDir, fileName).absolutePath)
+                            exportLauncher.launch(fileName)
                         },
                         onSettingsOpen = onSettingsOpen,
                         onNewChapter = { viewModel.showNewChapterDialog() },
@@ -139,7 +148,9 @@ fun ProjectScreen(
                     title = stringResource(R.string.nav_summary),
                     resume = info.resume,
                     modifier = Modifier.width(300.dp),
-                    onEditClick = onInfoOpen
+                    onSave = { newResume ->
+                        viewModel.updateProjectResume(newResume)
+                    }
                 )
             }
         }
@@ -177,9 +188,8 @@ fun ProjectScreen(
                 onBack = onBack,
                 onDrawerOpen = { scope.launch { drawerState.open() } },
                 onExport = {
-                    val outDir = context.getExternalFilesDir("exports") ?: context.filesDir
                     val fileName = (info.titre.ifBlank { File(projectPath).nameWithoutExtension }) + ".pdf"
-                    exportViewModel.exportBookPdf(projectPath, File(outDir, fileName).absolutePath)
+                    exportLauncher.launch(fileName)
                 },
                 onSettingsOpen = onSettingsOpen,
                 onNewChapter = { viewModel.showNewChapterDialog() },

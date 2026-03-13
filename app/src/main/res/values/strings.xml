@@ -81,6 +81,7 @@
     <!-- Settings -->
     <string name="settings_title">Paramètres</string>
     <string name="settings_font_size">Taille de police</string>
+    <string name="settings_page_format">Format de page</string>
     <string name="settings_autosave">Sauvegarde automatique (secondes)</string>
     <string name="settings_language">Langue</string>
     <string name="settings_theme">Thème</string>

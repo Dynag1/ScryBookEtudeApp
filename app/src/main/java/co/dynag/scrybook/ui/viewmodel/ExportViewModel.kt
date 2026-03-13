@@ -2,7 +2,6 @@ package co.dynag.scrybook.ui.viewmodel
 
 import android.content.Context
 import android.graphics.pdf.PdfDocument
-import android.os.Build
 import android.text.Html
 import android.text.Layout
 import android.text.StaticLayout
@@ -21,6 +20,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import java.io.OutputStream
+import android.net.Uri
 import javax.inject.Inject
 
 @HiltViewModel
@@ -37,8 +38,8 @@ class ExportViewModel @Inject constructor(
 
     fun clearResult() { _result.value = null }
 
-    /** Export tout le livre en PDF */
-    fun exportBookPdf(projectPath: String, outputPath: String) {
+    /** Export tout le livre en PDF (Titre + Sommaire + Chapitres + Résumé) */
+    fun exportBookPdf(projectPath: String, output: Any) {
         viewModelScope.launch {
             _exporting.value = true
             try {
@@ -46,197 +47,320 @@ class ExportViewModel @Inject constructor(
                     repository.openProject(projectPath)
                     val info = repository.getInfo()
                     val chapitres = repository.getChapitres()
+                    val param = repository.getParam()
 
-                    val pageWidth = 595 // A4 points
-                    val pageHeight = 842
-                    val margin = 72f // 1 inch
+                    val (pageWidth, pageHeight) = when (param.format) {
+                        "A5" -> 420 to 595
+                        "Poche" -> 312 to 510 // 11x18 cm ~ 312x510 points
+                        else -> 595 to 842 // A4
+                    }
+                    val margin = if (param.format == "Poche") 40f else 56f
                     val contentWidth = pageWidth - (2 * margin).toInt()
 
-                    val document = PdfDocument()
-                    var pageNumber = 1
+                    val selectedTypeface = when (param.police.lowercase()) {
+                        "sans" -> Typeface.SANS_SERIF
+                        "mono" -> Typeface.MONOSPACE
+                        else -> Typeface.SERIF
+                    }
+                    val baseFontSize = param.taille.toFloatOrNull() ?: 12f
 
-                    // --- Page de titre ---
-                    val titlePage = document.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create())
-                    val titleCanvas = titlePage.canvas
+                    // --- Styles ---
                     val titlePaint = TextPaint().apply {
-                        color = Color.BLACK; typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
+                        color = Color.BLACK; typeface = Typeface.create(selectedTypeface, Typeface.BOLD)
                         textSize = 28f; isAntiAlias = true
                     }
                     val subtitlePaint = TextPaint().apply {
-                        color = Color.DKGRAY; typeface = Typeface.create(Typeface.SERIF, Typeface.NORMAL)
+                        color = Color.DKGRAY; typeface = Typeface.create(selectedTypeface, Typeface.NORMAL)
                         textSize = 18f; isAntiAlias = true
                     }
                     val authorPaint = TextPaint().apply {
-                        color = Color.DKGRAY; typeface = Typeface.create(Typeface.SERIF, Typeface.ITALIC)
+                        color = Color.DKGRAY; typeface = Typeface.create(selectedTypeface, Typeface.ITALIC)
                         textSize = 14f; isAntiAlias = true
                     }
-
-                    // Titre centré
-                    val titleText = info.titre.ifBlank { File(projectPath).nameWithoutExtension }
-                    var y = pageHeight * 0.35f
-                    drawCenteredText(titleCanvas, titleText, titlePaint, pageWidth.toFloat(), y)
-                    y += 50f
-
-                    if (info.stitre.isNotBlank()) {
-                        drawCenteredText(titleCanvas, info.stitre, subtitlePaint, pageWidth.toFloat(), y)
-                        y += 40f
-                    }
-
-                    drawCenteredText(titleCanvas, info.auteur.ifBlank { "" }, authorPaint, pageWidth.toFloat(), pageHeight - margin - 30f)
-
-                    document.finishPage(titlePage)
-                    pageNumber++
-
-                    // --- Chapitres ---
                     val bodyPaint = TextPaint().apply {
-                        color = Color.BLACK; typeface = Typeface.create(Typeface.SERIF, Typeface.NORMAL)
-                        textSize = 12f; isAntiAlias = true
+                        color = Color.BLACK; typeface = selectedTypeface
+                        textSize = baseFontSize; isAntiAlias = true
                     }
                     val chapterTitlePaint = TextPaint().apply {
-                        color = Color.BLACK; typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
-                        textSize = 18f; isAntiAlias = true
+                        color = Color.BLACK; typeface = Typeface.create(selectedTypeface, Typeface.BOLD)
+                        textSize = 20f; isAntiAlias = true
                     }
                     val headerPaint = TextPaint().apply {
                         color = Color.GRAY; typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
                         textSize = 9f; isAntiAlias = true
                     }
 
-                    for (chapitre in chapitres) {
-                        val plainText = htmlToPlain(chapitre.contenuHtml)
-                        val lines = wrapText(plainText, bodyPaint, contentWidth.toFloat())
-
-                        // Titre du chapitre
-                        var page = document.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create())
-                        var canvas = page.canvas
-                        y = margin + 20f
-
-                        // Header
-                        canvas.drawText(chapitre.nom, pageWidth / 2f - chapterTitlePaint.measureText(chapitre.nom) / 2f, margin - 10f, headerPaint)
-
-                        // Titre chapitre centré
-                        drawCenteredText(canvas, chapitre.nom, chapterTitlePaint, pageWidth.toFloat(), y)
-                        y += 40f
-
-                        for (line in lines) {
-                            if (y > pageHeight - margin) {
-                                // Numéro de page
-                                canvas.drawText("${pageNumber - 1}", pageWidth - margin, pageHeight - margin / 2, headerPaint)
-                                document.finishPage(page)
-                                pageNumber++
-                                page = document.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create())
-                                canvas = page.canvas
-                                y = margin + 10f
-                                // Header
-                                canvas.drawText(chapitre.nom, pageWidth / 2f - headerPaint.measureText(chapitre.nom) / 2f, margin - 10f, headerPaint)
+                    // --- Phase 1 : Calcul des numéros de page pour le Sommaire ---
+                    // Page 1: Titre
+                    // Page 2: Sommaire (1 page reservée)
+                    var currentPage = 3 
+                    val tocEntries = mutableListOf<Pair<String, Int>>()
+                    
+                    val chapterLayouts = chapitres.map { chapitre ->
+                        val formattedContent = getHtmlContent(chapitre.contenuHtml, contentWidth)
+                        val layout = StaticLayout.Builder.obtain(formattedContent, 0, formattedContent.length, bodyPaint, contentWidth)
+                            .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                            .setLineSpacing(0f, 1.2f)
+                            .build()
+                        
+                        tocEntries.add(chapitre.nom to currentPage)
+                        
+                        var yOffset = margin + 40f + 60f // Titre chapitre
+                        var pagesInChapter = 1
+                        for (i in 0 until layout.lineCount) {
+                            val lh = layout.getLineBottom(i) - layout.getLineTop(i)
+                            if (yOffset + lh > pageHeight - margin) {
+                                pagesInChapter++
+                                yOffset = margin + 20f
                             }
-                            canvas.drawText(line, margin, y, bodyPaint)
-                            y += bodyPaint.textSize * 1.6f
+                            yOffset += lh
                         }
-
-                        canvas.drawText("${pageNumber - 1}", pageWidth - margin, pageHeight - margin / 2, headerPaint)
-                        document.finishPage(page)
-                        pageNumber++
+                        currentPage += pagesInChapter
+                        layout
                     }
 
-                    // Sauvegarder
-                    val file = File(outputPath)
-                    file.parentFile?.mkdirs()
-                    FileOutputStream(file).use { document.writeTo(it) }
+                    // --- Phase 2 : Rendu ---
+                    val document = PdfDocument()
+                    var docPageNumber = 1
+
+                    // 1. Page de Titre
+                    val titlePageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, docPageNumber).create()
+                    val titlePage = document.startPage(titlePageInfo)
+                    var yPos = pageHeight * 0.35f
+                    drawCenteredText(titlePage.canvas, info.titre.ifBlank { "Sans titre" }, titlePaint, pageWidth.toFloat(), yPos)
+                    if (info.stitre.isNotBlank()) {
+                        yPos += 50f
+                        drawCenteredText(titlePage.canvas, info.stitre, subtitlePaint, pageWidth.toFloat(), yPos)
+                    }
+                    drawCenteredText(titlePage.canvas, "Par " + info.auteur.ifBlank { "Auteur Inconnu" }, authorPaint, pageWidth.toFloat(), pageHeight - margin - 30f)
+                    document.finishPage(titlePage)
+                    docPageNumber++
+
+                    // 2. Sommaire
+                    val tocPageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, docPageNumber).create()
+                    val tocPage = document.startPage(tocPageInfo)
+                    yPos = margin + 20f
+                    drawCenteredText(tocPage.canvas, "Sommaire", titlePaint, pageWidth.toFloat(), yPos)
+                    yPos += 60f
+                    val tocLinePaint = TextPaint(bodyPaint).apply { textSize = 14f }
+                    for ((title, pageNum) in tocEntries) {
+                        tocPage.canvas.drawText(title, margin, yPos, tocLinePaint)
+                        val pStr = pageNum.toString()
+                        val pWidth = tocLinePaint.measureText(pStr)
+                        tocPage.canvas.drawText(pStr, pageWidth - margin - pWidth, yPos, tocLinePaint)
+                        // Points
+                        val startDots = margin + tocLinePaint.measureText(title) + 10f
+                        val endDots = pageWidth - margin - pWidth - 10f
+                        var dotX = startDots
+                        while (dotX < endDots) {
+                            tocPage.canvas.drawText(".", dotX, yPos, tocLinePaint)
+                            dotX += 10f
+                        }
+                        yPos += 30f
+                        if (yPos > pageHeight - margin) break
+                    }
+                    document.finishPage(tocPage)
+                    docPageNumber++
+
+                    // 3. Chapitres
+                    for (idx in chapitres.indices) {
+                        val chapitre = chapitres[idx]
+                        val layout = chapterLayouts[idx]
+                        
+                        var page = document.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, docPageNumber).create())
+                        var canvas = page.canvas
+                        
+                        // Header
+                        canvas.drawText(chapitre.nom, pageWidth / 2f - headerPaint.measureText(chapitre.nom) / 2f, margin - 15f, headerPaint)
+
+                        // Titre
+                        yPos = margin + 40f
+                        drawCenteredText(canvas, chapitre.nom, chapterTitlePaint, pageWidth.toFloat(), yPos)
+                        yPos += 60f
+
+                        for (i in 0 until layout.lineCount) {
+                            val lh = layout.getLineBottom(i) - layout.getLineTop(i)
+                            if (yPos + lh > pageHeight - margin) {
+                                // Footer
+                                canvas.drawText((docPageNumber - 2).toString(), pageWidth - margin, pageHeight - margin / 2, headerPaint)
+                                document.finishPage(page)
+                                
+                                docPageNumber++
+                                page = document.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, docPageNumber).create())
+                                canvas = page.canvas
+                                canvas.drawText(chapitre.nom, pageWidth / 2f - headerPaint.measureText(chapitre.nom) / 2f, margin - 15f, headerPaint)
+                                yPos = margin + 20f
+                            }
+                            drawLayoutLine(canvas, layout, i, margin, yPos)
+                            yPos += lh
+                        }
+                        canvas.drawText((docPageNumber - 2).toString(), pageWidth - margin, pageHeight - margin / 2, headerPaint)
+                        document.finishPage(page)
+                        docPageNumber++
+                    }
+
+                    // 4. Résumé
+                    if (info.resume.isNotBlank()) {
+                        val page = document.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, docPageNumber).create())
+                        drawCenteredText(page.canvas, "Résumé", chapterTitlePaint, pageWidth.toFloat(), margin + 40f)
+                        yPos = margin + 100f
+                        val formattedResume = getHtmlContent(info.resume, contentWidth)
+                        val resLayout = StaticLayout.Builder.obtain(formattedResume, 0, formattedResume.length, bodyPaint, contentWidth)
+                            .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                            .setLineSpacing(0f, 1.2f)
+                            .build()
+                        for (i in 0 until resLayout.lineCount) {
+                            val lh = resLayout.getLineBottom(i) - resLayout.getLineTop(i)
+                            if (yPos + lh > pageHeight - margin) break
+                            drawLayoutLine(page.canvas, resLayout, i, margin, yPos)
+                            yPos += lh
+                        }
+                        document.finishPage(page)
+                        docPageNumber++
+                    }
+
+                    // Flush
+                    val os: OutputStream? = when (output) {
+                        is Uri -> context.contentResolver.openOutputStream(output)
+                        is String -> FileOutputStream(File(output))
+                        else -> null
+                    }
+                    os?.use { document.writeTo(it) }
                     document.close()
                 }
-                _result.value = ExportResult.Success(outputPath)
+                _result.value = ExportResult.Success(if (output is String) output else "Livre")
             } catch (e: Exception) {
-                _result.value = ExportResult.Error(e.message ?: "Erreur inconnue")
+                _result.value = ExportResult.Error(e.message ?: "Erreur")
             } finally {
                 _exporting.value = false
             }
         }
     }
 
-    /** Export un seul chapitre en PDF */
-    fun exportChapterPdf(projectPath: String, chapterId: Long, outputPath: String) {
+    /** Export un seul chapitre */
+    fun exportChapterPdf(projectPath: String, chapterId: Long, output: Any) {
         viewModelScope.launch {
             _exporting.value = true
             try {
                 withContext(Dispatchers.IO) {
                     repository.openProject(projectPath)
-                    val chapitre = repository.getChapitre(chapterId) ?: throw Exception("Chapitre introuvable")
-
-                    val pageWidth = 595
-                    val pageHeight = 842
-                    val margin = 72f
+                    val chapitre = repository.getChapitre(chapterId) ?: throw Exception("Introuvable")
+                    val param = repository.getParam()
+                    val (pageWidth, pageHeight) = when (param.format) {
+                        "A5" -> 420 to 595
+                        "Poche" -> 312 to 510
+                        else -> 595 to 842
+                    }
+                    val margin = if (param.format == "Poche") 40f else 56f
                     val contentWidth = pageWidth - (2 * margin).toInt()
 
+                    val selectedTypeface = when (param.police.lowercase()) {
+                        "sans" -> Typeface.SANS_SERIF
+                        "mono" -> Typeface.MONOSPACE
+                        else -> Typeface.SERIF
+                    }
+                    val baseFontSize = param.taille.toFloatOrNull() ?: 12f
+                    val bodyPaint = TextPaint().apply { color = Color.BLACK; typeface = selectedTypeface; textSize = baseFontSize; isAntiAlias = true }
+                    val titlePaint = TextPaint().apply { color = Color.BLACK; typeface = Typeface.create(selectedTypeface, Typeface.BOLD); textSize = 20f; isAntiAlias = true }
+                    val headerPaint = TextPaint().apply { color = Color.GRAY; typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL); textSize = 9f; isAntiAlias = true }
+
+                    val content = getHtmlContent(chapitre.contenuHtml, contentWidth)
+                    val layout = StaticLayout.Builder.obtain(content, 0, content.length, bodyPaint, contentWidth)
+                        .setAlignment(Layout.Alignment.ALIGN_NORMAL).setLineSpacing(0f, 1.2f).build()
+
                     val document = PdfDocument()
-                    var pageNumber = 1
-
-                    val bodyPaint = TextPaint().apply {
-                        color = Color.BLACK; typeface = Typeface.create(Typeface.SERIF, Typeface.NORMAL)
-                        textSize = 12f; isAntiAlias = true
-                    }
-                    val chapterTitlePaint = TextPaint().apply {
-                        color = Color.BLACK; typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
-                        textSize = 18f; isAntiAlias = true
-                    }
-                    val headerPaint = TextPaint().apply {
-                        color = Color.GRAY; typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
-                        textSize = 9f; isAntiAlias = true
-                    }
-
-                    val plainText = htmlToPlain(chapitre.contenuHtml)
-                    val lines = wrapText(plainText, bodyPaint, contentWidth.toFloat())
-
-                    var page = document.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create())
+                    var pNum = 1
+                    var page = document.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pNum).create())
                     var canvas = page.canvas
-                    var y = margin + 20f
+                    var yP = margin + 40f
+                    drawCenteredText(canvas, chapitre.nom, titlePaint, pageWidth.toFloat(), yP)
+                    yP += 60f
 
-                    drawCenteredText(canvas, chapitre.nom, chapterTitlePaint, pageWidth.toFloat(), y)
-                    y += 40f
-
-                    for (line in lines) {
-                        if (y > pageHeight - margin) {
-                            canvas.drawText("$pageNumber", pageWidth - margin, pageHeight - margin / 2, headerPaint)
+                    for (i in 0 until layout.lineCount) {
+                        val lh = layout.getLineBottom(i) - layout.getLineTop(i)
+                        if (yP + lh > pageHeight - margin) {
+                            canvas.drawText(pNum.toString(), pageWidth - margin, pageHeight - margin/2, headerPaint)
                             document.finishPage(page)
-                            pageNumber++
-                            page = document.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create())
+                            pNum++
+                            page = document.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pNum).create())
                             canvas = page.canvas
-                            y = margin + 10f
+                            yP = margin + 20f
                         }
-                        canvas.drawText(line, margin, y, bodyPaint)
-                        y += bodyPaint.textSize * 1.6f
+                        drawLayoutLine(canvas, layout, i, margin, yP)
+                        yP += lh
                     }
-                    canvas.drawText("$pageNumber", pageWidth - margin, pageHeight - margin / 2, headerPaint)
+                    canvas.drawText(pNum.toString(), pageWidth - margin, pageHeight - margin/2, headerPaint)
                     document.finishPage(page)
-                    FileOutputStream(File(outputPath)).use { document.writeTo(it) }
+
+                    val os: OutputStream? = when (output) {
+                        is Uri -> context.contentResolver.openOutputStream(output)
+                        is String -> FileOutputStream(File(output))
+                        else -> null
+                    }
+                    os?.use { document.writeTo(it) }
                     document.close()
                 }
-                _result.value = ExportResult.Success(outputPath)
+                _result.value = ExportResult.Success("Chapitre")
             } catch (e: Exception) {
-                _result.value = ExportResult.Error(e.message ?: "Erreur inconnue")
+                _result.value = ExportResult.Error(e.message ?: "Erreur")
             } finally {
                 _exporting.value = false
             }
         }
     }
 
-    private fun htmlToPlain(html: String): String {
-        if (html.isBlank()) return ""
-        return Html.fromHtml(html, Html.FROM_HTML_MODE_COMPACT).toString().trim()
+    private fun getHtmlContent(html: String, contentWidth: Int): CharSequence {
+        val cleaned = cleanHtmlForExport(html)
+        return Html.fromHtml(cleaned, Html.FROM_HTML_MODE_COMPACT, { source ->
+            try {
+                // Charge l'image depuis le dossier du projet
+                val imgFile = File(source)
+                if (imgFile.exists()) {
+                    val bitmap = android.graphics.BitmapFactory.decodeFile(imgFile.absolutePath)
+                    if (bitmap != null) {
+                        val drawable = android.graphics.drawable.BitmapDrawable(context.resources, bitmap)
+                        val ratio = bitmap.height.toFloat() / bitmap.width.toFloat()
+                        val targetWidth = if (bitmap.width > contentWidth) contentWidth else bitmap.width
+                        val targetHeight = (targetWidth * ratio).toInt()
+                        drawable.setBounds(0, 0, targetWidth, targetHeight)
+                        return@fromHtml drawable
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            null
+        }, null)
     }
 
-    private fun wrapText(text: String, paint: TextPaint, maxWidth: Float): List<String> {
-        val result = mutableListOf<String>()
-        for (paragraph in text.split("\n")) {
-            if (paragraph.isBlank()) { result.add(""); continue }
-            val layout = StaticLayout.Builder.obtain(paragraph, 0, paragraph.length, paint, maxWidth.toInt())
-                .setAlignment(Layout.Alignment.ALIGN_NORMAL)
-                .setLineSpacing(0f, 1f)
-                .build()
-            for (i in 0 until layout.lineCount) {
-                result.add(paragraph.substring(layout.getLineStart(i), layout.getLineEnd(i)).trimEnd())
-            }
-        }
-        return result
+    private fun cleanHtmlForExport(html: String): String {
+        if (html.isBlank()) return ""
+        var cleaned = html.replace(Regex("<style.*?>.*?</style>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)), "")
+            .replace(Regex("<script.*?>.*?</script>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)), "")
+            .replace(Regex("<!DOCTYPE.*?>", RegexOption.IGNORE_CASE), "")
+            .replace(Regex("<html.*?>", RegexOption.IGNORE_CASE), "")
+            .replace(Regex("</html.*?>", RegexOption.IGNORE_CASE), "")
+            .replace(Regex("<body.*?>", RegexOption.IGNORE_CASE), "")
+            .replace(Regex("</body.*?>", RegexOption.IGNORE_CASE), "")
+            .replace(Regex("<head.*?>.*?</head>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)), "")
+            
+        // Conversion CSS -> Balises pour mieux supporter Html.fromHtml
+        cleaned = cleaned.replace(Regex("<span style=\"[^\"]*font-weight:700[^\"]*\">(.*?)</span>", RegexOption.IGNORE_CASE), "<b>$1</b>")
+        cleaned = cleaned.replace(Regex("<span style=\"[^\"]*font-weight:bold[^\"]*\">(.*?)</span>", RegexOption.IGNORE_CASE), "<b>$1</b>")
+        cleaned = cleaned.replace(Regex("<span style=\"[^\"]*font-style:italic[^\"]*\">(.*?)</span>", RegexOption.IGNORE_CASE), "<i>$1</i>")
+        cleaned = cleaned.replace(Regex("<span style=\"[^\"]*text-decoration:\\s*underline[^\"]*\">(.*?)</span>", RegexOption.IGNORE_CASE), "<u>$1</u>")
+        
+        return cleaned
+    }
+
+    private fun drawLayoutLine(canvas: android.graphics.Canvas, layout: StaticLayout, lineIndex: Int, x: Float, y: Float) {
+        canvas.save()
+        val lineTop = layout.getLineTop(lineIndex)
+        val lineBottom = layout.getLineBottom(lineIndex)
+        canvas.translate(x, y - lineTop)
+        canvas.clipRect(0, lineTop, layout.width, lineBottom)
+        layout.draw(canvas)
+        canvas.restore()
     }
 
     private fun drawCenteredText(canvas: android.graphics.Canvas, text: String, paint: TextPaint, pageWidth: Float, y: Float) {

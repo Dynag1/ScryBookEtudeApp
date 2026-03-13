@@ -74,4 +74,12 @@ class ProjectViewModel @Inject constructor(
             _chapitres.value = repository.getChapitres()
         }
     }
+
+    fun updateProjectResume(resume: String) {
+        viewModelScope.launch {
+            val newInfo = _info.value.copy(resume = resume)
+            repository.saveInfo(newInfo)
+            _info.value = newInfo
+        }
+    }
 }

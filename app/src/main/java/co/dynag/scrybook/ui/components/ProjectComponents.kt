@@ -9,13 +9,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
 import androidx.compose.ui.platform.LocalConfiguration
 import android.content.res.Configuration
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -153,8 +154,11 @@ fun SummaryPanel(
     title: String,
     resume: String,
     modifier: Modifier = Modifier,
-    onEditClick: (() -> Unit)? = null
+    onSave: (String) -> Unit
 ) {
+    var editedResume by remember(resume) { mutableStateOf(resume) }
+    val isDirty = editedResume != resume
+
     Surface(
         modifier = modifier.fillMaxHeight(),
         color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -169,36 +173,42 @@ fun SummaryPanel(
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.weight(1f)
                 )
-                if (onEditClick != null) {
-                    IconButton(onClick = onEditClick, modifier = Modifier.size(24.dp)) {
-                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                if (isDirty) {
+                    Button(
+                        onClick = { onSave(editedResume) },
+                        modifier = Modifier.height(32.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(Icons.Default.Save, null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Sauvegarder", style = MaterialTheme.typography.labelMedium)
                     }
                 }
             }
             Spacer(Modifier.height(12.dp))
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(Modifier.height(12.dp))
-            
-            if (resume.isBlank()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+
+            OutlinedTextField(
+                value = editedResume,
+                onValueChange = { editedResume = it },
+                modifier = Modifier.fillMaxSize(),
+                textStyle = MaterialTheme.typography.bodyMedium,
+                placeholder = {
                     Text(
                         stringResource(R.string.full_summary_no_resume),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )
-                }
-            } else {
-                LazyColumn(modifier = Modifier.weight(1f)) {
-                    item {
-                        Text(
-                            text = resume,
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Justify,
-                            lineHeight = androidx.compose.ui.unit.TextUnit.Unspecified
-                        )
-                    }
-                }
-            }
+                },
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedContainerColor = Color.Transparent
+                )
+            )
         }
     }
 }

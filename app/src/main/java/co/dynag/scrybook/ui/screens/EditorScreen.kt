@@ -75,6 +75,7 @@ fun EditorScreen(
     
     var showNewChapterDialog by remember { mutableStateOf(false) }
     var showEditChapterDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     
     var activeSidePanel by remember { mutableStateOf(SidePanelType.SUMMARY) }
 
@@ -218,7 +219,9 @@ fun EditorScreen(
                                 sr.startListening(intent)
                             }
                         },
-                        onSave = { viewModel.saveNow() }
+                        onSave = { viewModel.saveNow() },
+                        onDelete = { showDeleteConfirmDialog = true },
+                        onEditMetadata = { showEditChapterDialog = true }
                     )
                 },
                 bottomBar = { ScryBookBottomBar() }
@@ -244,7 +247,11 @@ fun EditorScreen(
                                         title = stringResource(R.string.chapter_summary),
                                         resume = chapitre?.resume ?: "",
                                         modifier = Modifier.fillMaxSize(),
-                                        onEditClick = { showEditChapterDialog = true }
+                                        onSave = { newResume ->
+                                            chapitre?.let {
+                                                viewModel.updateChapitreInfo(it.id, it.nom, it.numero, newResume)
+                                            }
+                                        }
                                     )
                                 }
                                 SidePanelType.CHARACTERS -> {
@@ -311,7 +318,9 @@ fun EditorScreen(
                             sr.startListening(intent)
                         }
                     },
-                    onSave = { viewModel.saveNow() }
+                    onSave = { viewModel.saveNow() },
+                    onDelete = { showDeleteConfirmDialog = true },
+                    onEditMetadata = { showEditChapterDialog = true }
                 )
             },
             bottomBar = { ScryBookBottomBar() }
@@ -385,6 +394,30 @@ fun EditorScreen(
             )
         }
     }
+
+    if (showDeleteConfirmDialog) {
+        val ch = chapitre
+        if (ch != null) {
+            AlertDialog(
+                onDismissRequest = { showDeleteConfirmDialog = false },
+                icon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) },
+                title = { Text(stringResource(R.string.chapter_delete_title)) },
+                text = { Text(stringResource(R.string.chapter_delete_confirm, ch.nom)) },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            viewModel.deleteChapitre(ch.id) {
+                                showDeleteConfirmDialog = false
+                                onBack()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    ) { Text(stringResource(R.string.action_delete)) }
+                },
+                dismissButton = { TextButton(onClick = { showDeleteConfirmDialog = false }) { Text(stringResource(R.string.action_cancel)) } }
+            )
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -400,7 +433,9 @@ private fun EditorTopAppBar(
     ttsReady: Boolean,
     isSttListening: Boolean,
     onToggleStt: () -> Unit,
-    onSave: () -> Unit
+    onSave: () -> Unit,
+    onDelete: () -> Unit,
+    onEditMetadata: () -> Unit
 ) {
     TopAppBar(
         navigationIcon = {
@@ -432,6 +467,12 @@ private fun EditorTopAppBar(
             }
         },
         actions = {
+            IconButton(onClick = onEditMetadata) {
+                Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.chapter_edit_title))
+            }
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.chapter_delete_title), tint = MaterialTheme.colorScheme.error)
+            }
             onCharactersOpen?.let {
                 IconButton(onClick = it) {
                     Icon(Icons.Default.Person, contentDescription = stringResource(R.string.nav_characters))
