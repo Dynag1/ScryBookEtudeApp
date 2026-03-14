@@ -25,7 +25,8 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("/home/hemge/Clood/021 - Programmation/Android/ScryBook/release.keystore")
+            val autoKeystore = File(project.rootDir, "release.keystore")
+            storeFile = if (autoKeystore.exists()) autoKeystore else file("/home/hemge/Clood/021 - Programmation/Android/ScryBook be/release.keystore")
             storePassword = "G22rtp12"
             keyAlias = "scrybook-key"
             keyPassword = "G22rtp12"
