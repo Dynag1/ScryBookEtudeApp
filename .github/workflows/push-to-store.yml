@@ -24,7 +24,7 @@ jobs:
       - name: Decode Keystore
         shell: python
         env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE }}
         run: |
           import base64
           import os
