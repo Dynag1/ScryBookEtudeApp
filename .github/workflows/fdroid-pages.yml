@@ -1,0 +1,82 @@
+name: F-Droid Repository Build & Publish
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Decode App Keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release.keystore
+        continue-on-error: true
+
+      - name: Build Release APK
+        run: ./gradlew assembleRelease
+
+      - name: Install F-Droid Server
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fdroidserver
+
+      - name: Initialize & Update F-Droid Repo
+        run: |
+          mkdir -p fdroid/repo
+          mkdir -p public/fdroid
+          
+          # Copie des APKs et métadonnées
+          cp app/build/outputs/apk/release/*.apk fdroid/repo/
+          cp -r fastlane/metadata/android/* fdroid/repo/ 2>/dev/null || true
+          
+          cd fdroid
+          
+          # Initialiser le dépôt (créera un keystore F-Droid ou en générera un)
+          # Note: En production auto-hébergée stable, il est recommandé de sauvegarder
+          # le 'keystore.p12' généré en tant que Secret GitHub et le restaurer ici,
+          # sinon l'URL/clé change à chaque mise à jour.
+          fdroid init -d repo
+          
+          # Mise à jour de l'index
+          fdroid update -c
+          
+          # Déplacer seulement le dossier 'repo' public (on ne veut pas uploader le keystore.p12 sur internet)
+          cp -r repo ../public/fdroid/
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './public'
+
+  deploy:
+    needs: build-and-deploy
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
