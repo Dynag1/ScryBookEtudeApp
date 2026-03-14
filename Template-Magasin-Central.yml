@@ -1,0 +1,58 @@
+name: Build Central F-Droid Store Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build_repo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup F-Droid Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fdroidserver
+
+      - name: Prepare F-Droid Repo
+        run: |
+          mkdir -p fdroid/repo
+          mkdir -p public/fdroid
+          
+          # Copie des APKs et métadonnées poussés par vos différentes applications
+          cp -r apks/*/* fdroid/repo/ 2>/dev/null || true
+          cp -r metadata/* fdroid/repo/ 2>/dev/null || true
+          
+          cd fdroid
+          fdroid init -d repo
+          fdroid update -c
+          
+          cp -r repo ../public/fdroid/
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './public'
+
+  deploy:
+    needs: build_repo
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
