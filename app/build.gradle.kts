@@ -30,6 +30,7 @@ android {
             storePassword = "G22rtp12"
             keyAlias = "scrybook-key"
             keyPassword = "G22rtp12"
+            storeType = "PKCS12"
         }
     }
 
