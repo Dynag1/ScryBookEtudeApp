@@ -1,0 +1,9 @@
+**ScryBook Etude** est une application spécialement taillée pour les rédacteurs, les auditeurs professionnels et tous les analystes nécessitant un support structuré lors de leurs prises de notes.
+
+**Fonctionnalités Principales :**
+- Support complet du format Markdown pour une mise en forme rapide et nomade.
+- Outil fonctionnant à 100% hors ligne (offline-first) pour préserver la sécurité de vos études.
+- Génération et structuration automatiques par chapitres professionnels : Présentation, Introduction, Demande initiale, Audit, Préconisations, Conclusion.
+- Sauvegardes vers et depuis les fichiers de projets sécurisés (`.sbe`).
+
+Grâce à son interface optimisée, **ScryBook** offre un environnement minimaliste idéal pour les professionnels en déplacement.

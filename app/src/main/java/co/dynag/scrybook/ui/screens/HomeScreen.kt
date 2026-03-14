@@ -97,7 +97,7 @@ fun HomeScreen(
                 } else {
                     val destDir = java.io.File(viewModel.defaultProjectDir())
                     destDir.mkdirs()
-                    val fileName = uri.lastPathSegment?.substringAfterLast('/') ?: "project.sb"
+                    val fileName = uri.lastPathSegment?.substringAfterLast('/') ?: "project.sbe"
                     val destFile = java.io.File(destDir, fileName)
                     finalPath = destFile.absolutePath
 

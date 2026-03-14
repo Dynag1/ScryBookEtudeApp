@@ -24,7 +24,7 @@ class MainActivity : ComponentActivity() {
 
     @Inject lateinit var repository: ScryBookRepository
 
-    /** If set, the app opens this .sb file directly */
+    /** If set, the app opens this .sbe file directly */
     val openFilePath = mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -74,7 +74,7 @@ class MainActivity : ComponentActivity() {
 
             // Otherwise, use the resolver which might copy it
             val path = resolveUri(uri)
-            if (path != null && path.endsWith(".sb")) {
+            if (path != null && path.endsWith(".sbe")) {
                 openFilePath.value = path
             }
         }
@@ -91,7 +91,7 @@ class MainActivity : ComponentActivity() {
 
         // content:// scheme — copy to persistent storage
         try {
-            val fileName = uri.lastPathSegment?.substringAfterLast('/') ?: "project.sb"
+            val fileName = uri.lastPathSegment?.substringAfterLast('/') ?: "project.sbe"
             val destDir = File(getExternalFilesDir("ScryBook"), "")
             destDir.mkdirs()
             val destFile = File(destDir, fileName)

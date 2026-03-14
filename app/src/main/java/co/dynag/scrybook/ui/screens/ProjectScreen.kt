@@ -41,8 +41,7 @@ fun ProjectScreen(
     projectPath: String,
     onChapterOpen: (Long) -> Unit,
     onInfoOpen: () -> Unit,
-    onCharactersOpen: () -> Unit,
-    onPlacesOpen: () -> Unit,
+    onSitesOpen: () -> Unit,
     onSettingsOpen: () -> Unit,
     onFullSummaryOpen: () -> Unit,
     onBack: () -> Unit,
@@ -135,8 +134,7 @@ fun ProjectScreen(
                         },
                         onSettingsOpen = onSettingsOpen,
                         onNewChapter = { viewModel.showNewChapterDialog() },
-                        onCharactersOpen = onCharactersOpen,
-                        onPlacesOpen = onPlacesOpen,
+                        onSitesOpen = onSitesOpen,
                         onFullSummaryOpen = onFullSummaryOpen,
                         onInfoOpen = onInfoOpen,
                         onChapterOpen = onChapterOpen,
@@ -194,8 +192,7 @@ fun ProjectScreen(
                 },
                 onSettingsOpen = onSettingsOpen,
                 onNewChapter = { viewModel.showNewChapterDialog() },
-                onCharactersOpen = onCharactersOpen,
-                onPlacesOpen = onPlacesOpen,
+                onSitesOpen = onSitesOpen,
                 onFullSummaryOpen = onFullSummaryOpen,
                 onInfoOpen = onInfoOpen,
                 onChapterOpen = onChapterOpen,
@@ -286,8 +283,7 @@ private fun ProjectMainContent(
     onExport: () -> Unit,
     onSettingsOpen: () -> Unit,
     onNewChapter: () -> Unit,
-    onCharactersOpen: () -> Unit,
-    onPlacesOpen: () -> Unit,
+    onSitesOpen: () -> Unit,
     onFullSummaryOpen: () -> Unit,
     onInfoOpen: () -> Unit,
     onChapterOpen: (Long) -> Unit,
@@ -362,14 +358,9 @@ private fun ProjectMainContent(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 item {
-                    FilterChip(false, onClick = onCharactersOpen,
-                        label = { Text(stringResource(R.string.nav_characters), maxLines = 1) },
-                        leadingIcon = { Icon(Icons.Default.Person, null, Modifier.size(16.dp)) })
-                }
-                item {
-                    FilterChip(false, onClick = onPlacesOpen,
-                        label = { Text(stringResource(R.string.nav_places), maxLines = 1) },
-                        leadingIcon = { Icon(Icons.Default.Place, null, Modifier.size(16.dp)) })
+                    FilterChip(false, onClick = onSitesOpen,
+                        label = { Text(stringResource(R.string.nav_sites), maxLines = 1) },
+                        leadingIcon = { Icon(Icons.Default.Language, null, Modifier.size(16.dp)) })
                 }
                 item {
                     FilterChip(false, onClick = onFullSummaryOpen,

@@ -151,6 +151,28 @@ class ScryBookRepository(private val context: Context) {
         syncBack()
     }
 
+    // ─── Sites ────────────────────────────────────────────────────────────────
+
+    suspend fun getSites(): List<co.dynag.scrybook.data.model.Site> = withContext(Dispatchers.IO) {
+        dbHelper?.getSites() ?: emptyList()
+    }
+
+    suspend fun insertSite(nom: String, contenu: String): Long = withContext(Dispatchers.IO) {
+        val id = dbHelper?.insertSite(nom, contenu) ?: -1L
+        if (id != -1L) syncBack()
+        id
+    }
+
+    suspend fun updateSite(id: Long, nom: String, contenu: String) = withContext(Dispatchers.IO) {
+        dbHelper?.updateSite(id, nom, contenu)
+        syncBack()
+    }
+
+    suspend fun deleteSite(id: Long) = withContext(Dispatchers.IO) {
+        dbHelper?.deleteSite(id)
+        syncBack()
+    }
+
     // ─── Info ─────────────────────────────────────────────────────────────────
 
     suspend fun getInfo(): Info = withContext(Dispatchers.IO) {

@@ -89,7 +89,7 @@ class HomeViewModel @Inject constructor(
                         try {
                             dir.walkTopDown()
                                 .maxDepth(8)
-                                .filter { it.isFile && it.extension == "sb" }
+                                .filter { it.isFile && it.extension == "sbe" }
                                 .forEach { file ->
                                     if (found.none { it.path == file.absolutePath }) {
                                         val uri = getUriForPath(file.absolutePath)
@@ -135,7 +135,7 @@ class HomeViewModel @Inject constructor(
                     return null
                 }
             }
-            val file = File(dir, "$name.sb")
+            val file = File(dir, "$name.sbe")
             if (!file.exists()) file.createNewFile()
             addToRecent(file.absolutePath)
             file.absolutePath

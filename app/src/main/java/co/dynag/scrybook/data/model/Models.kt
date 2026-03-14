@@ -8,6 +8,17 @@ data class Chapitre(
     val contenuHtml: String = ""
 )
 
+/**
+ * Site - référence web avec nom et contenu markdown.
+ * Remplace Personnages et Lieux dans la nouvelle version.
+ */
+data class Site(
+    val id: Long = 0,
+    val nom: String = "",
+    val contenu: String = ""  // Contenu markdown
+)
+
+// Personnage et Lieu conservés uniquement pour la compatibilité des fichiers .sb existants
 data class Personnage(
     val id: Long = 0,
     val alias: String = "",

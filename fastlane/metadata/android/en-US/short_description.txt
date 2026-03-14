@@ -1,0 +1,1 @@
+A minimalist and structured application for academic studies and professional audits.

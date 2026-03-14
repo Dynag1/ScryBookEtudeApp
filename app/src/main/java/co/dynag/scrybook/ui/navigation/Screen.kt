@@ -12,11 +12,8 @@ sealed class Screen(val route: String) {
     object ProjectInfo : Screen("project_info/{projectPath}") {
         fun createRoute(projectPath: String) = "project_info/${java.net.URLEncoder.encode(projectPath, "UTF-8")}"
     }
-    object Characters : Screen("characters/{projectPath}") {
-        fun createRoute(projectPath: String) = "characters/${java.net.URLEncoder.encode(projectPath, "UTF-8")}"
-    }
-    object Places : Screen("places/{projectPath}") {
-        fun createRoute(projectPath: String) = "places/${java.net.URLEncoder.encode(projectPath, "UTF-8")}"
+    object Sites : Screen("sites/{projectPath}") {
+        fun createRoute(projectPath: String) = "sites/${java.net.URLEncoder.encode(projectPath, "UTF-8")}"
     }
     object Settings : Screen("settings/{projectPath}") {
         fun createRoute(projectPath: String) = "settings/${java.net.URLEncoder.encode(projectPath, "UTF-8")}"

@@ -14,7 +14,7 @@ import java.net.URLDecoder
 fun AppNavigation(openFilePath: String? = null) {
     val navController = rememberNavController()
 
-    // If launched with a .sb file, navigate directly to Project
+    // If launched with a .sbe file, navigate directly to Project
     LaunchedEffect(openFilePath) {
         openFilePath?.let { path ->
             navController.navigate(Screen.Project.createRoute(path)) {
@@ -49,11 +49,8 @@ fun AppNavigation(openFilePath: String? = null) {
                 onInfoOpen = {
                     navController.navigate(Screen.ProjectInfo.createRoute(projectPath))
                 },
-                onCharactersOpen = {
-                    navController.navigate(Screen.Characters.createRoute(projectPath))
-                },
-                onPlacesOpen = {
-                    navController.navigate(Screen.Places.createRoute(projectPath))
+                onSitesOpen = {
+                    navController.navigate(Screen.Sites.createRoute(projectPath))
                 },
                 onSettingsOpen = {
                     navController.navigate(Screen.Settings.createRoute(projectPath))
@@ -80,12 +77,8 @@ fun AppNavigation(openFilePath: String? = null) {
                 chapterId = chapterId,
                 onBack = { navController.popBackStack(Screen.Project.route, inclusive = false) },
                 onChapterOpen = { newId ->
-                    navController.navigate(Screen.Editor.createRoute(projectPath, newId)) {
-                        // Replace current if same destination but different ID (optional, but keep default stack for now)
-                    }
-                },
-                onCharactersOpen = { navController.navigate(Screen.Characters.createRoute(projectPath)) },
-                onPlacesOpen = { navController.navigate(Screen.Places.createRoute(projectPath)) }
+                    navController.navigate(Screen.Editor.createRoute(projectPath, newId))
+                }
             )
         }
 
@@ -99,21 +92,12 @@ fun AppNavigation(openFilePath: String? = null) {
         }
 
         composable(
-            route = Screen.Characters.route,
+            route = Screen.Sites.route,
             arguments = listOf(navArgument("projectPath") { type = NavType.StringType })
         ) { backStackEntry ->
             val encodedPath = backStackEntry.arguments?.getString("projectPath") ?: ""
             val projectPath = URLDecoder.decode(encodedPath, "UTF-8")
-            CharactersScreen(projectPath = projectPath, onBack = { navController.popBackStack() })
-        }
-
-        composable(
-            route = Screen.Places.route,
-            arguments = listOf(navArgument("projectPath") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val encodedPath = backStackEntry.arguments?.getString("projectPath") ?: ""
-            val projectPath = URLDecoder.decode(encodedPath, "UTF-8")
-            PlacesScreen(projectPath = projectPath, onBack = { navController.popBackStack() })
+            SiteScreen(projectPath = projectPath, onBack = { navController.popBackStack() })
         }
 
         composable(

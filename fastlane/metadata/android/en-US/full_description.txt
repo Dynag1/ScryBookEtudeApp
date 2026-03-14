@@ -1,0 +1,8 @@
+ScryBook Etude is a tailored solution for writers, auditors, and professionals who need a structured environment for their documents.
+
+Features:
+- Native Markdown support.
+- Fully offline functionality.
+- Automatic document structuring based on professional audit templates (Introductions, Audits, Recommendations, etc.).
+- Site and location management for professional tracking.
+- Syncs seamlessly with `.sbe` project files.

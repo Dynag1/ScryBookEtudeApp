@@ -15,7 +15,7 @@ class ScryBookDatabase(context: Context, dbPath: String) :
     SQLiteOpenHelper(context, dbPath, null, DB_VERSION) {
 
     companion object {
-        const val DB_VERSION = 2
+        const val DB_VERSION = 3
 
         // Table names
         const val TABLE_CHAPITRE = "chapitre"
@@ -23,6 +23,17 @@ class ScryBookDatabase(context: Context, dbPath: String) :
         const val TABLE_LIEUX = "lieux"
         const val TABLE_INFO = "info"
         const val TABLE_PARAM = "param"
+        const val TABLE_SITE = "site"
+
+        // Défaut chapitres créés à la nouvelle création d'un projet
+        val DEFAULT_CHAPTERS = listOf(
+            Triple("Présentation", "1", ""),
+            Triple("Introduction", "2", ""),
+            Triple("Demande Initiale", "3", ""),
+            Triple("Audit", "4", ""),
+            Triple("Préconisations", "5", ""),
+            Triple("Conclusion", "6", "")
+        )
 
         fun open(context: Context, dbPath: String): ScryBookDatabase {
             return ScryBookDatabase(context, dbPath)
@@ -80,19 +91,38 @@ class ScryBookDatabase(context: Context, dbPath: String) :
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 police TEXT, taille TEXT, save_time TEXT, langue TEXT, theme TEXT, lic TEXT, format TEXT DEFAULT 'A4'
             )""")
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS $TABLE_SITE (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nom TEXT NOT NULL DEFAULT '',
+                contenu TEXT DEFAULT ''
+            )""")
 
         // Insert default rows
         db.execSQL("INSERT OR IGNORE INTO $TABLE_INFO (id, titre, auteur, date, resume) VALUES (1,'','','','')")
         db.execSQL("INSERT OR IGNORE INTO $TABLE_PARAM (id, police, taille, save_time, langue, theme) VALUES (1,'serif','16','30','fr','dark')")
+
+        // Créer les chapitres par défaut
+        DEFAULT_CHAPTERS.forEach { (nom, numero, resume) ->
+            db.execSQL("INSERT INTO $TABLE_CHAPITRE (nom, numero, resume, contenu_html) VALUES ('$nom','$numero','$resume','')")
+        }
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         if (oldVersion < 2) {
             try {
                 db.execSQL("ALTER TABLE $TABLE_PARAM ADD COLUMN format TEXT DEFAULT 'A4'")
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            } catch (e: Exception) { e.printStackTrace() }
+        }
+        if (oldVersion < 3) {
+            try {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS $TABLE_SITE (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        nom TEXT NOT NULL DEFAULT '',
+                        contenu TEXT DEFAULT ''
+                    )""")
+            } catch (e: Exception) { e.printStackTrace() }
         }
     }
 
@@ -204,6 +234,35 @@ class ScryBookDatabase(context: Context, dbPath: String) :
     }
 
     fun deleteLieu(id: Long) { writableDatabase.delete(TABLE_LIEUX, "id=?", arrayOf(id.toString())) }
+
+    // ─── Sites ────────────────────────────────────────────────────────────────
+
+    fun getSites(): List<co.dynag.scrybook.data.model.Site> {
+        val list = mutableListOf<co.dynag.scrybook.data.model.Site>()
+        val cursor = readableDatabase.rawQuery("SELECT id, COALESCE(nom,''), COALESCE(contenu,'') FROM $TABLE_SITE ORDER BY id", null)
+        while (cursor.moveToNext()) list.add(co.dynag.scrybook.data.model.Site(cursor.getLong(0), cursor.getString(1), cursor.getString(2)))
+        cursor.close()
+        return list
+    }
+
+    fun getSite(id: Long): co.dynag.scrybook.data.model.Site? {
+        val cursor = readableDatabase.rawQuery("SELECT id, COALESCE(nom,''), COALESCE(contenu,'') FROM $TABLE_SITE WHERE id=?", arrayOf(id.toString()))
+        return if (cursor.moveToFirst()) {
+            co.dynag.scrybook.data.model.Site(cursor.getLong(0), cursor.getString(1), cursor.getString(2)).also { cursor.close() }
+        } else { cursor.close(); null }
+    }
+
+    fun insertSite(nom: String, contenu: String): Long {
+        val cv = ContentValues().apply { put("nom", nom); put("contenu", contenu) }
+        return writableDatabase.insert(TABLE_SITE, null, cv)
+    }
+
+    fun updateSite(id: Long, nom: String, contenu: String) {
+        val cv = ContentValues().apply { put("nom", nom); put("contenu", contenu) }
+        writableDatabase.update(TABLE_SITE, cv, "id=?", arrayOf(id.toString()))
+    }
+
+    fun deleteSite(id: Long) { writableDatabase.delete(TABLE_SITE, "id=?", arrayOf(id.toString())) }
 
     // ─── Info ─────────────────────────────────────────────────────────────────
 
