@@ -50,16 +50,16 @@ jobs:
       - name: Push APK and Metadata to Store
         run: |
           # Création de l'arborescence
-          mkdir -p store-repo/apks/co.dynag.scrybook
-          mkdir -p store-repo/metadata/co.dynag.scrybook/en-US
-          mkdir -p store-repo/metadata/co.dynag.scrybook/fr-FR
+          mkdir -p store-repo/apks/co.dynag.scrybook.etude
+          mkdir -p store-repo/metadata/co.dynag.scrybook.etude/en-US
+          mkdir -p store-repo/metadata/co.dynag.scrybook.etude/fr-FR
           
           # Copie des APK
-          cp app/build/outputs/apk/release/*.apk store-repo/apks/co.dynag.scrybook/
+          cp app/build/outputs/apk/release/*.apk store-repo/apks/co.dynag.scrybook.etude/
           
           # Copie des métadonnées Fastlane
-          cp -r fastlane/metadata/android/fr-FR/* store-repo/metadata/co.dynag.scrybook/fr-FR/ 2>/dev/null || true
-          cp -r fastlane/metadata/android/en-US/* store-repo/metadata/co.dynag.scrybook/en-US/ 2>/dev/null || true
+          cp -r fastlane/metadata/android/fr-FR/* store-repo/metadata/co.dynag.scrybook.etude/fr-FR/ 2>/dev/null || true
+          cp -r fastlane/metadata/android/en-US/* store-repo/metadata/co.dynag.scrybook.etude/en-US/ 2>/dev/null || true
           
           # Push sur le magasin central
           cd store-repo

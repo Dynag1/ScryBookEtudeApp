@@ -1,3 +1,5 @@
+import java.io.ByteArrayOutputStream
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -11,12 +13,12 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "co.dynag.scrybook"
+        applicationId = "co.dynag.scrybook.etude"
         minSdk = 26
         targetSdk = 35
         // Dynamic versioning based on git commits
         val commitCount = try {
-            val stdout = java.io.ByteArrayOutputStream()
+            val stdout = ByteArrayOutputStream()
             exec {
                 commandLine("git", "rev-list", "--count", "HEAD")
                 standardOutput = stdout
