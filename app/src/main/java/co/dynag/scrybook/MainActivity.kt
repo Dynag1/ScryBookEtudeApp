@@ -74,7 +74,7 @@ class MainActivity : ComponentActivity() {
 
             // Otherwise, use the resolver which might copy it
             val path = resolveUri(uri)
-            if (path != null && path.endsWith(".sbe")) {
+            if (path != null) {
                 openFilePath.value = path
             }
         }
@@ -91,7 +91,10 @@ class MainActivity : ComponentActivity() {
 
         // content:// scheme — copy to persistent storage
         try {
-            val fileName = uri.lastPathSegment?.substringAfterLast('/') ?: "project.sbe"
+            var fileName = uri.lastPathSegment?.substringAfterLast('/') ?: "project.sbe"
+            if (!fileName.contains(".sbe", ignoreCase = true)) {
+                fileName = if (fileName.contains(".")) fileName.substringBeforeLast(".") + ".sbe" else "$fileName.sbe"
+            }
             val destDir = File(getExternalFilesDir("ScryBook"), "")
             destDir.mkdirs()
             val destFile = File(destDir, fileName)

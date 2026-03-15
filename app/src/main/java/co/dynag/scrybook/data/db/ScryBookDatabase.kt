@@ -15,7 +15,7 @@ class ScryBookDatabase(context: Context, dbPath: String) :
     SQLiteOpenHelper(context, dbPath, null, DB_VERSION) {
 
     companion object {
-        const val DB_VERSION = 3
+        const val DB_VERSION = 4
 
         // Table names
         const val TABLE_CHAPITRE = "chapitre"
@@ -122,6 +122,14 @@ class ScryBookDatabase(context: Context, dbPath: String) :
                         nom TEXT NOT NULL DEFAULT '',
                         contenu TEXT DEFAULT ''
                     )""")
+            } catch (e: Exception) { e.printStackTrace() }
+        }
+        if (oldVersion < 4) {
+            try {
+                db.execSQL("ALTER TABLE $TABLE_INFO ADD COLUMN stitre TEXT")
+            } catch (e: Exception) { e.printStackTrace() }
+            try {
+                db.execSQL("ALTER TABLE $TABLE_CHAPITRE ADD COLUMN contenu_html TEXT DEFAULT ''")
             } catch (e: Exception) { e.printStackTrace() }
         }
     }
