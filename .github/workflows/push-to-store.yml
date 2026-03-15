@@ -62,8 +62,8 @@ jobs:
           mkdir -p store-repo/metadata/co.dynag.scrybook.etude/en-US
           mkdir -p store-repo/metadata/co.dynag.scrybook.etude/fr-FR
           
-          # Copie des APK
-          cp app/build/outputs/apk/release/*.apk store-repo/apks/co.dynag.scrybook.etude/
+          # Copie des APK (en le renommant pour éviter les écrasements dans le dossier plat de F-Droid)
+          cp app/build/outputs/apk/release/*.apk store-repo/apks/co.dynag.scrybook.etude/scrybook-etude-release.apk
           
           # Copie des métadonnées Fastlane
           cp -r fastlane/metadata/android/fr-FR/* store-repo/metadata/co.dynag.scrybook.etude/fr-FR/ 2>/dev/null || true
