@@ -29,7 +29,7 @@ android {
         }
 
         versionCode = commitCount
-        versionName = "0.0.3"
+        versionName = "0.1.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
