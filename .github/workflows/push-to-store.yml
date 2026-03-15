@@ -37,6 +37,14 @@ jobs:
               print("❌ KEYSTORE_BASE64 secret is empty")
               exit(1)
 
+      - name: Debug Keystore on Runner
+        run: |
+          echo "--- 📦 Taille du Keystore ---"
+          ls -l release.keystore
+          echo "--- 🔬 Test d'ouverture Keytool ---"
+          keytool -list -v -keystore release.keystore -storepass "G22rtp12" | grep -E "Alias|Algorithme" || echo "❌ Échec de l'ouverture du Keystore avec le mot de passe"
+
+
       - name: Build Release APK
         run: ./gradlew assembleRelease
 
