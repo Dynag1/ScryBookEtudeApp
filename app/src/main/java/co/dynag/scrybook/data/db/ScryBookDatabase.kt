@@ -139,25 +139,21 @@ class ScryBookDatabase(context: Context, dbPath: String) :
     fun getChapitres(): List<Chapitre> {
         val list = mutableListOf<Chapitre>()
         val db = readableDatabase
-        val cursor = db.rawQuery("SELECT * FROM $TABLE_CHAPITRE ORDER BY CAST(numero AS INTEGER)", null)
+        
+        // Exclude full text content in list retrieval to avoid CursorWindow 2MB limitation crashes when containing inline images
+        val cursor = db.rawQuery("SELECT id, nom, numero, resume FROM $TABLE_CHAPITRE ORDER BY CAST(numero AS INTEGER)", null)
         val idIdx = cursor.columnNames.indexOfFirst { it.equals("id", true) }
         val nomIdx = cursor.columnNames.indexOfFirst { it.equals("nom", true) }
         val numIdx = cursor.columnNames.indexOfFirst { it.equals("numero", true) }
         val resIdx = cursor.columnNames.indexOfFirst { it.equals("resume", true) }
-        val htmlIdx = cursor.columnNames.indexOfFirst { it.equals("contenu_html", true) }
-        val contIdx = cursor.columnNames.indexOfFirst { it.equals("contenu", true) }
 
         while (cursor.moveToNext()) {
-            val html = if (htmlIdx != -1) cursor.getString(htmlIdx) ?: "" else ""
-            val oldHtml = if (contIdx != -1) cursor.getString(contIdx) ?: "" else ""
-            val finalHtml = if (oldHtml.isNotBlank()) oldHtml else html
-
             list.add(Chapitre(
                 id = if (idIdx != -1) cursor.getLong(idIdx) else 0L,
                 nom = if (nomIdx != -1) cursor.getString(nomIdx) ?: "" else "",
                 numero = if (numIdx != -1) cursor.getString(numIdx) ?: "" else "",
                 resume = if (resIdx != -1) cursor.getString(resIdx) ?: "" else "",
-                contenuHtml = finalHtml
+                contenuHtml = "" // Loaded per chapter in getChapitre()
             ))
         }
         cursor.close()
