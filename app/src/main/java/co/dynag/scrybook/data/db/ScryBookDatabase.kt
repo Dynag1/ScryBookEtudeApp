@@ -68,7 +68,7 @@ class ScryBookDatabase(context: Context, dbPath: String) :
                 nom TEXT NOT NULL DEFAULT '',
                 numero TEXT NOT NULL DEFAULT '',
                 resume TEXT NOT NULL DEFAULT '',
-                contenu_html TEXT DEFAULT ''
+                contenu TEXT DEFAULT ''
             )""")
         db.execSQL("""
             CREATE TABLE IF NOT EXISTS $TABLE_PERSO (
@@ -104,7 +104,7 @@ class ScryBookDatabase(context: Context, dbPath: String) :
 
         // Créer les chapitres par défaut
         DEFAULT_CHAPTERS.forEach { (nom, numero, resume) ->
-            db.execSQL("INSERT INTO $TABLE_CHAPITRE (nom, numero, resume, contenu_html) VALUES ('$nom','$numero','$resume','')")
+            db.execSQL("INSERT INTO $TABLE_CHAPITRE (nom, numero, resume, contenu) VALUES ('$nom','$numero','$resume','')")
         }
     }
 
@@ -139,14 +139,25 @@ class ScryBookDatabase(context: Context, dbPath: String) :
     fun getChapitres(): List<Chapitre> {
         val list = mutableListOf<Chapitre>()
         val db = readableDatabase
-        val cursor = db.rawQuery("SELECT id, nom, numero, resume, COALESCE(contenu_html,'') FROM $TABLE_CHAPITRE ORDER BY CAST(numero AS INTEGER)", null)
+        val cursor = db.rawQuery("SELECT * FROM $TABLE_CHAPITRE ORDER BY CAST(numero AS INTEGER)", null)
+        val idIdx = cursor.getColumnIndex("id")
+        val nomIdx = cursor.getColumnIndex("nom")
+        val numIdx = cursor.getColumnIndex("numero")
+        val resIdx = cursor.getColumnIndex("resume")
+        val htmlIdx = cursor.getColumnIndex("contenu_html")
+        val contIdx = cursor.getColumnIndex("contenu")
+
         while (cursor.moveToNext()) {
+            val html = if (htmlIdx != -1) cursor.getString(htmlIdx) ?: "" else ""
+            val oldHtml = if (contIdx != -1) cursor.getString(contIdx) ?: "" else ""
+            val finalHtml = if (oldHtml.isNotBlank()) oldHtml else html
+
             list.add(Chapitre(
-                id = cursor.getLong(0),
-                nom = cursor.getString(1) ?: "",
-                numero = cursor.getString(2) ?: "",
-                resume = cursor.getString(3) ?: "",
-                contenuHtml = cursor.getString(4) ?: ""
+                id = if (idIdx != -1) cursor.getLong(idIdx) else 0L,
+                nom = if (nomIdx != -1) cursor.getString(nomIdx) ?: "" else "",
+                numero = if (numIdx != -1) cursor.getString(numIdx) ?: "" else "",
+                resume = if (resIdx != -1) cursor.getString(resIdx) ?: "" else "",
+                contenuHtml = finalHtml
             ))
         }
         cursor.close()
@@ -155,9 +166,26 @@ class ScryBookDatabase(context: Context, dbPath: String) :
 
     fun getChapitre(id: Long): Chapitre? {
         val db = readableDatabase
-        val cursor = db.rawQuery("SELECT id, nom, numero, resume, COALESCE(contenu_html,'') FROM $TABLE_CHAPITRE WHERE id=?", arrayOf(id.toString()))
+        val cursor = db.rawQuery("SELECT * FROM $TABLE_CHAPITRE WHERE id=?", arrayOf(id.toString()))
         return if (cursor.moveToFirst()) {
-            Chapitre(cursor.getLong(0), cursor.getString(1)?:"", cursor.getString(2)?:"", cursor.getString(3)?:"", cursor.getString(4)?:"").also { cursor.close() }
+            val idIdx = cursor.getColumnIndex("id")
+            val nomIdx = cursor.getColumnIndex("nom")
+            val numIdx = cursor.getColumnIndex("numero")
+            val resIdx = cursor.getColumnIndex("resume")
+            val htmlIdx = cursor.getColumnIndex("contenu_html")
+            val contIdx = cursor.getColumnIndex("contenu")
+
+            val html = if (htmlIdx != -1) cursor.getString(htmlIdx) ?: "" else ""
+            val oldHtml = if (contIdx != -1) cursor.getString(contIdx) ?: "" else ""
+            val finalHtml = if (oldHtml.isNotBlank()) oldHtml else html
+
+            Chapitre(
+                id = if (idIdx != -1) cursor.getLong(idIdx) else 0L,
+                nom = if (nomIdx != -1) cursor.getString(nomIdx) ?: "" else "",
+                numero = if (numIdx != -1) cursor.getString(numIdx) ?: "" else "",
+                resume = if (resIdx != -1) cursor.getString(resIdx) ?: "" else "",
+                contenuHtml = finalHtml
+            ).also { cursor.close() }
         } else { cursor.close(); null }
     }
 
@@ -179,7 +207,20 @@ class ScryBookDatabase(context: Context, dbPath: String) :
     fun saveChapitreContenu(id: Long, html: String) {
         android.util.Log.d("ScryBookDB", "Saving chapter $id, content length: ${html.length}")
         val db = writableDatabase
-        val cv = ContentValues().apply { put("contenu_html", html) }
+        val cv = ContentValues().apply { put("contenu", html) }
+
+        // Upgrade compatibility check for old "contenu_html" column
+        try {
+            val pragma = db.rawQuery("PRAGMA table_info($TABLE_CHAPITRE)", null)
+            var hasContenuHtml = false
+            while (pragma.moveToNext()) {
+                val nameCol = pragma.getString(1)
+                if (nameCol == "contenu_html") { hasContenuHtml = true; break }
+            }
+            pragma.close()
+            if (hasContenuHtml) { cv.put("contenu_html", html) }
+        } catch (e: Exception) { e.printStackTrace() }
+
         val count = db.update(TABLE_CHAPITRE, cv, "id=?", arrayOf(id.toString()))
         android.util.Log.d("ScryBookDB", "Update result: $count rows affected")
     }

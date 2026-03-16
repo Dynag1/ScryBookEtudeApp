@@ -539,6 +539,7 @@ private fun EditorMainContent(
                                 val escaped = htmlContent
                                     .replace("\\", "\\\\")
                                     .replace("'", "\\'")
+                                    .replace("\r", "\\r")
                                     .replace("\n", "\\n")
                                 view.evaluateJavascript("setContent('$escaped');", null)
                             }
@@ -553,6 +554,7 @@ private fun EditorMainContent(
                     val escaped = htmlContent
                         .replace("\\", "\\\\")
                         .replace("'", "\\'")
+                        .replace("\r", "\\r")
                         .replace("\n", "\\n")
                     view.evaluateJavascript("if(document.getElementById('editor').innerHTML === '') setContent('$escaped');", null)
                 }
