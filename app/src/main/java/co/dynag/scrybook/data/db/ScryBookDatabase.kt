@@ -11,7 +11,7 @@ import co.dynag.scrybook.data.model.*
  * Keeps 100% compatibility with the .sb file format from the desktop app.
  * The .sb file IS the SQLite database file.
  */
-class ScryBookDatabase(context: Context, dbPath: String) :
+class ScryBookDatabase(private val context: Context, dbPath: String) :
     SQLiteOpenHelper(context, dbPath, null, DB_VERSION) {
 
     companion object {
@@ -117,7 +117,7 @@ class ScryBookDatabase(context: Context, dbPath: String) :
 
         if (!templateJson.isNullOrBlank()) {
             try {
-                val array = org.json.JSONArray(templateJson)
+                val array = org.json.JSONArray(templateJson.toString())
                 for (i in 0 until array.length()) {
                     val obj = array.getJSONObject(i)
                     val nom = obj.optString("nom", "")
