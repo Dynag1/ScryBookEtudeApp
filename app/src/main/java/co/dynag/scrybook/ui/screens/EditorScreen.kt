@@ -690,9 +690,16 @@ private fun getEditorHtml(bgColor: String, textColor: String, accentColor: Strin
     word-wrap: break-word;
   }
   #editor * {
+    background-color: transparent !important;
+    color: inherit !important;
+    font-family: inherit !important;
     font-size: inherit;
   }
-  h1 { display: block !important; text-align: center; font-size: ${h1Size}px !important; font-weight: normal; margin-top: 1em !important; margin-bottom: 0.5em !important; color: $accentColor; }
+  #editor h1, #editor h2 {
+    background-color: transparent !important;
+  }
+  #editor h1 * { color: inherit !important; }
+  h1 { display: block !important; text-align: center; font-size: ${h1Size}px !important; font-weight: normal; margin-top: 1em !important; margin-bottom: 0.5em !important; color: $accentColor !important; }
   h1 * { font-size: ${h1Size}px !important; }
   h2 { display: block !important; text-align: left; font-size: ${h2Size}px !important; font-weight: bold; text-decoration: underline; margin-top: 1em !important; margin-bottom: 0.5em !important; margin-left: 2em !important; }
   h2 * { font-size: ${h2Size}px !important; }
