@@ -197,20 +197,21 @@ class ScryBookDatabase(context: Context, dbPath: String) :
     fun insertChapitre(nom: String, numero: String, resume: String): Long {
         val db = writableDatabase
         val cv = ContentValues().apply {
-            put("nom", nom); put("numero", numero)
-            put("resume", resume); put("contenu", "")
+            put("nom", nom); put("numero", numero); put("resume", resume)
         }
 
-        // Upgrade compatibility check for old "contenu_html" column
         try {
             val pragma = db.rawQuery("PRAGMA table_info($TABLE_CHAPITRE)", null)
+            var hasContenu = false
             var hasContenuHtml = false
             while (pragma.moveToNext()) {
                 val nameCol = pragma.getString(1)
-                if (nameCol == "contenu_html") { hasContenuHtml = true; break }
+                if (nameCol == "contenu") hasContenu = true
+                if (nameCol == "contenu_html") hasContenuHtml = true
             }
             pragma.close()
-            if (hasContenuHtml) { cv.put("contenu_html", "") }
+            if (hasContenu) cv.put("contenu", "")
+            if (hasContenuHtml) cv.put("contenu_html", "")
         } catch (e: Exception) { e.printStackTrace() }
 
         return db.insert(TABLE_CHAPITRE, null, cv)
@@ -225,18 +226,20 @@ class ScryBookDatabase(context: Context, dbPath: String) :
     fun saveChapitreContenu(id: Long, html: String) {
         android.util.Log.d("ScryBookDB", "Saving chapter $id, content length: ${html.length}")
         val db = writableDatabase
-        val cv = ContentValues().apply { put("contenu", html) }
+        val cv = ContentValues()
 
-        // Upgrade compatibility check for old "contenu_html" column
         try {
             val pragma = db.rawQuery("PRAGMA table_info($TABLE_CHAPITRE)", null)
+            var hasContenu = false
             var hasContenuHtml = false
             while (pragma.moveToNext()) {
                 val nameCol = pragma.getString(1)
-                if (nameCol == "contenu_html") { hasContenuHtml = true; break }
+                if (nameCol == "contenu") hasContenu = true
+                if (nameCol == "contenu_html") hasContenuHtml = true
             }
             pragma.close()
-            if (hasContenuHtml) { cv.put("contenu_html", html) }
+            if (hasContenu) cv.put("contenu", html)
+            if (hasContenuHtml) cv.put("contenu_html", html)
         } catch (e: Exception) { e.printStackTrace() }
 
         val count = db.update(TABLE_CHAPITRE, cv, "id=?", arrayOf(id.toString()))
@@ -402,8 +405,19 @@ class ScryBookDatabase(context: Context, dbPath: String) :
         val cv = ContentValues().apply {
             put("police", param.police); put("taille", param.taille)
             put("save_time", param.saveTime); put("langue", param.langue)
-            put("theme", param.theme); put("format", param.format)
+            put("theme", param.theme)
         }
+
+        try {
+            val pragma = db.rawQuery("PRAGMA table_info($TABLE_PARAM)", null)
+            var hasFormat = false
+            while (pragma.moveToNext()) {
+                if (pragma.getString(1) == "format") { hasFormat = true; break }
+            }
+            pragma.close()
+            if (hasFormat) cv.put("format", param.format)
+        } catch (e: Exception) { e.printStackTrace() }
+
         val rows = db.update(TABLE_PARAM, cv, "id=1", null)
         if (rows == 0) { cv.put("id", 1L); db.insert(TABLE_PARAM, null, cv) }
     }
