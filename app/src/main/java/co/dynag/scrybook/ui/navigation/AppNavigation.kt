@@ -19,7 +19,8 @@ fun AppNavigation(openFilePath: String? = null) {
         openFilePath?.let { path ->
             val route = Screen.Project.createRoute(path)
             val currentPathArg = navController.currentBackStackEntry?.arguments?.getString("projectPath")
-            if (currentPathArg != path) {
+            val decodedPathArg = currentPathArg?.let { java.net.URLDecoder.decode(it, "UTF-8") }
+            if (decodedPathArg != path) {
                 navController.navigate(route) {
                     popUpTo(Screen.Home.route) { inclusive = false }
                 }
