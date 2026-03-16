@@ -74,10 +74,10 @@ class ScryBookDatabase(context: Context, dbPath: String) :
         db.execSQL("""
             CREATE TABLE IF NOT EXISTS $TABLE_CHAPITRE (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nom TEXT NOT NULL DEFAULT '',
-                numero TEXT NOT NULL DEFAULT '',
-                resume TEXT NOT NULL DEFAULT '',
-                contenu TEXT DEFAULT ''
+                nom TEXT NOT NULL,
+                numero TEXT NOT NULL,
+                resume TEXT NOT NULL,
+                contenu_html TEXT DEFAULT ''
             )""")
         db.execSQL("""
             CREATE TABLE IF NOT EXISTS $TABLE_PERSO (
@@ -98,13 +98,13 @@ class ScryBookDatabase(context: Context, dbPath: String) :
         db.execSQL("""
             CREATE TABLE IF NOT EXISTS $TABLE_PARAM (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                police TEXT, taille TEXT, save_time TEXT, langue TEXT, theme TEXT, lic TEXT, format TEXT DEFAULT 'A4'
+                police TEXT, taille TEXT, save_time TEXT, langue TEXT, theme TEXT, lic TEXT, format_page TEXT
             )""")
         db.execSQL("""
             CREATE TABLE IF NOT EXISTS $TABLE_SITE (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 nom TEXT NOT NULL DEFAULT '',
-                contenu TEXT DEFAULT ''
+                contenu TEXT NOT NULL DEFAULT ''
             )""")
 
         // Insert default rows
@@ -113,7 +113,7 @@ class ScryBookDatabase(context: Context, dbPath: String) :
 
         // Créer les chapitres par défaut
         DEFAULT_CHAPTERS.forEach { (nom, numero, resume) ->
-            db.execSQL("INSERT INTO $TABLE_CHAPITRE (nom, numero, resume, contenu) VALUES ('$nom','$numero','$resume','')")
+            db.execSQL("INSERT INTO $TABLE_CHAPITRE (nom, numero, resume, contenu_html) VALUES ('$nom','$numero','$resume','')")
         }
     }
 
@@ -178,11 +178,8 @@ class ScryBookDatabase(context: Context, dbPath: String) :
             val numIdx = cursor.columnNames.indexOfFirst { it.equals("numero", true) }
             val resIdx = cursor.columnNames.indexOfFirst { it.equals("resume", true) }
             val htmlIdx = cursor.columnNames.indexOfFirst { it.equals("contenu_html", true) }
-            val contIdx = cursor.columnNames.indexOfFirst { it.equals("contenu", true) }
 
-            val html = if (htmlIdx != -1) cursor.getString(htmlIdx) ?: "" else ""
-            val oldHtml = if (contIdx != -1) cursor.getString(contIdx) ?: "" else ""
-            val finalHtml = if (oldHtml.isNotBlank()) oldHtml else html
+            val finalHtml = if (htmlIdx != -1) cursor.getString(htmlIdx) ?: "" else ""
 
             Chapitre(
                 id = if (idIdx != -1) cursor.getLong(idIdx) else 0L,
@@ -198,22 +195,8 @@ class ScryBookDatabase(context: Context, dbPath: String) :
         val db = writableDatabase
         val cv = ContentValues().apply {
             put("nom", nom); put("numero", numero); put("resume", resume)
+            put("contenu_html", "")
         }
-
-        try {
-            val pragma = db.rawQuery("PRAGMA table_info($TABLE_CHAPITRE)", null)
-            var hasContenu = false
-            var hasContenuHtml = false
-            while (pragma.moveToNext()) {
-                val nameCol = pragma.getString(1)
-                if (nameCol == "contenu") hasContenu = true
-                if (nameCol == "contenu_html") hasContenuHtml = true
-            }
-            pragma.close()
-            if (hasContenu) cv.put("contenu", "")
-            if (hasContenuHtml) cv.put("contenu_html", "")
-        } catch (e: Exception) { e.printStackTrace() }
-
         return db.insert(TABLE_CHAPITRE, null, cv)
     }
 
@@ -226,22 +209,7 @@ class ScryBookDatabase(context: Context, dbPath: String) :
     fun saveChapitreContenu(id: Long, html: String) {
         android.util.Log.d("ScryBookDB", "Saving chapter $id, content length: ${html.length}")
         val db = writableDatabase
-        val cv = ContentValues()
-
-        try {
-            val pragma = db.rawQuery("PRAGMA table_info($TABLE_CHAPITRE)", null)
-            var hasContenu = false
-            var hasContenuHtml = false
-            while (pragma.moveToNext()) {
-                val nameCol = pragma.getString(1)
-                if (nameCol == "contenu") hasContenu = true
-                if (nameCol == "contenu_html") hasContenuHtml = true
-            }
-            pragma.close()
-            if (hasContenu) cv.put("contenu", html)
-            if (hasContenuHtml) cv.put("contenu_html", html)
-        } catch (e: Exception) { e.printStackTrace() }
-
+        val cv = ContentValues().apply { put("contenu_html", html) }
         val count = db.update(TABLE_CHAPITRE, cv, "id=?", arrayOf(id.toString()))
         android.util.Log.d("ScryBookDB", "Update result: $count rows affected")
     }
@@ -385,7 +353,7 @@ class ScryBookDatabase(context: Context, dbPath: String) :
         val savIdx = cursor.columnNames.indexOfFirst { it.equals("save_time", true) }
         val lanIdx = cursor.columnNames.indexOfFirst { it.equals("langue", true) }
         val thmIdx = cursor.columnNames.indexOfFirst { it.equals("theme", true) }
-        val fmtIdx = cursor.columnNames.indexOfFirst { it.equals("format", true) }
+        val fmtIdx = cursor.columnNames.indexOfFirst { it.equals("format_page", true) }
 
         return if (cursor.moveToFirst()) {
             Param(
@@ -405,19 +373,8 @@ class ScryBookDatabase(context: Context, dbPath: String) :
         val cv = ContentValues().apply {
             put("police", param.police); put("taille", param.taille)
             put("save_time", param.saveTime); put("langue", param.langue)
-            put("theme", param.theme)
+            put("theme", param.theme); put("format_page", param.format)
         }
-
-        try {
-            val pragma = db.rawQuery("PRAGMA table_info($TABLE_PARAM)", null)
-            var hasFormat = false
-            while (pragma.moveToNext()) {
-                if (pragma.getString(1) == "format") { hasFormat = true; break }
-            }
-            pragma.close()
-            if (hasFormat) cv.put("format", param.format)
-        } catch (e: Exception) { e.printStackTrace() }
-
         val rows = db.update(TABLE_PARAM, cv, "id=1", null)
         if (rows == 0) { cv.put("id", 1L); db.insert(TABLE_PARAM, null, cv) }
     }
