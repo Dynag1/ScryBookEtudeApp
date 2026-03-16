@@ -140,12 +140,12 @@ class ScryBookDatabase(context: Context, dbPath: String) :
         val list = mutableListOf<Chapitre>()
         val db = readableDatabase
         val cursor = db.rawQuery("SELECT * FROM $TABLE_CHAPITRE ORDER BY CAST(numero AS INTEGER)", null)
-        val idIdx = cursor.getColumnIndex("id")
-        val nomIdx = cursor.getColumnIndex("nom")
-        val numIdx = cursor.getColumnIndex("numero")
-        val resIdx = cursor.getColumnIndex("resume")
-        val htmlIdx = cursor.getColumnIndex("contenu_html")
-        val contIdx = cursor.getColumnIndex("contenu")
+        val idIdx = cursor.columnNames.indexOfFirst { it.equals("id", true) }
+        val nomIdx = cursor.columnNames.indexOfFirst { it.equals("nom", true) }
+        val numIdx = cursor.columnNames.indexOfFirst { it.equals("numero", true) }
+        val resIdx = cursor.columnNames.indexOfFirst { it.equals("resume", true) }
+        val htmlIdx = cursor.columnNames.indexOfFirst { it.equals("contenu_html", true) }
+        val contIdx = cursor.columnNames.indexOfFirst { it.equals("contenu", true) }
 
         while (cursor.moveToNext()) {
             val html = if (htmlIdx != -1) cursor.getString(htmlIdx) ?: "" else ""
@@ -168,12 +168,12 @@ class ScryBookDatabase(context: Context, dbPath: String) :
         val db = readableDatabase
         val cursor = db.rawQuery("SELECT * FROM $TABLE_CHAPITRE WHERE id=?", arrayOf(id.toString()))
         return if (cursor.moveToFirst()) {
-            val idIdx = cursor.getColumnIndex("id")
-            val nomIdx = cursor.getColumnIndex("nom")
-            val numIdx = cursor.getColumnIndex("numero")
-            val resIdx = cursor.getColumnIndex("resume")
-            val htmlIdx = cursor.getColumnIndex("contenu_html")
-            val contIdx = cursor.getColumnIndex("contenu")
+            val idIdx = cursor.columnNames.indexOfFirst { it.equals("id", true) }
+            val nomIdx = cursor.columnNames.indexOfFirst { it.equals("nom", true) }
+            val numIdx = cursor.columnNames.indexOfFirst { it.equals("numero", true) }
+            val resIdx = cursor.columnNames.indexOfFirst { it.equals("resume", true) }
+            val htmlIdx = cursor.columnNames.indexOfFirst { it.equals("contenu_html", true) }
+            val contIdx = cursor.columnNames.indexOfFirst { it.equals("contenu", true) }
 
             val html = if (htmlIdx != -1) cursor.getString(htmlIdx) ?: "" else ""
             val oldHtml = if (contIdx != -1) cursor.getString(contIdx) ?: "" else ""
@@ -193,8 +193,21 @@ class ScryBookDatabase(context: Context, dbPath: String) :
         val db = writableDatabase
         val cv = ContentValues().apply {
             put("nom", nom); put("numero", numero)
-            put("resume", resume); put("contenu_html", "")
+            put("resume", resume); put("contenu", "")
         }
+
+        // Upgrade compatibility check for old "contenu_html" column
+        try {
+            val pragma = db.rawQuery("PRAGMA table_info($TABLE_CHAPITRE)", null)
+            var hasContenuHtml = false
+            while (pragma.moveToNext()) {
+                val nameCol = pragma.getString(1)
+                if (nameCol == "contenu_html") { hasContenuHtml = true; break }
+            }
+            pragma.close()
+            if (hasContenuHtml) { cv.put("contenu_html", "") }
+        } catch (e: Exception) { e.printStackTrace() }
+
         return db.insert(TABLE_CHAPITRE, null, cv)
     }
 

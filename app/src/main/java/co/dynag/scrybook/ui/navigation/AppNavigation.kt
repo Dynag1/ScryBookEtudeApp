@@ -14,18 +14,12 @@ import java.net.URLDecoder
 fun AppNavigation(openFilePath: String? = null) {
     val navController = rememberNavController()
 
-    // If launched with a .sbe file, navigate directly to Project
-    LaunchedEffect(openFilePath) {
-        openFilePath?.let { path ->
-            navController.navigate(Screen.Project.createRoute(path)) {
-                popUpTo(Screen.Home.route)
-            }
-        }
-    }
+    // Removed LaunchedEffect for direct navigation which had race conditions with NavHost inflation.
+    // startDestination now handles it dynamically.
 
     NavHost(
         navController = navController,
-        startDestination = Screen.Home.route
+        startDestination = if (openFilePath != null) Screen.Project.createRoute(openFilePath) else Screen.Home.route
     ) {
         composable(Screen.Home.route) {
             HomeScreen(
@@ -58,7 +52,11 @@ fun AppNavigation(openFilePath: String? = null) {
                 onFullSummaryOpen = {
                     navController.navigate(Screen.FullSummary.createRoute(projectPath))
                 },
-                onBack = { navController.popBackStack(Screen.Home.route, inclusive = false) }
+                onBack = { 
+                    if (!navController.popBackStack(Screen.Home.route, inclusive = false)) {
+                        navController.navigate(Screen.Home.route)
+                    }
+                }
             )
         }
 
