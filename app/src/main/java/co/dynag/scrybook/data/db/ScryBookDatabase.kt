@@ -62,6 +62,15 @@ class ScryBookDatabase(context: Context, dbPath: String) :
     }
 
     override fun onCreate(db: SQLiteDatabase) {
+        val cursor = db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='$TABLE_CHAPITRE'", null)
+        val hasChapitre = cursor.moveToFirst()
+        cursor.close()
+
+        if (hasChapitre) {
+            // Desktop file without 'android_metadata' table, do not recreate or insert default chapters
+            return
+        }
+
         db.execSQL("""
             CREATE TABLE IF NOT EXISTS $TABLE_CHAPITRE (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -304,9 +313,17 @@ class ScryBookDatabase(context: Context, dbPath: String) :
     }
 
     fun getSite(id: Long): co.dynag.scrybook.data.model.Site? {
-        val cursor = readableDatabase.rawQuery("SELECT id, COALESCE(nom,''), COALESCE(contenu,'') FROM $TABLE_SITE WHERE id=?", arrayOf(id.toString()))
+        val cursor = readableDatabase.rawQuery("SELECT * FROM $TABLE_SITE WHERE id=?", arrayOf(id.toString()))
+        val idIdx = cursor.columnNames.indexOfFirst { it.equals("id", true) }
+        val nomIdx = cursor.columnNames.indexOfFirst { it.equals("nom", true) }
+        val conIdx = cursor.columnNames.indexOfFirst { it.equals("contenu", true) }
+
         return if (cursor.moveToFirst()) {
-            co.dynag.scrybook.data.model.Site(cursor.getLong(0), cursor.getString(1), cursor.getString(2)).also { cursor.close() }
+            co.dynag.scrybook.data.model.Site(
+                id = if (idIdx != -1) cursor.getLong(idIdx) else 0L,
+                nom = if (nomIdx != -1) cursor.getString(nomIdx) ?: "" else "",
+                contenu = if (conIdx != -1) cursor.getString(conIdx) ?: "" else ""
+            ).also { cursor.close() }
         } else { cursor.close(); null }
     }
 
@@ -325,9 +342,23 @@ class ScryBookDatabase(context: Context, dbPath: String) :
     // ─── Info ─────────────────────────────────────────────────────────────────
 
     fun getInfo(): Info {
-        val cursor = readableDatabase.rawQuery("SELECT id, COALESCE(titre,''), COALESCE(stitre,''), COALESCE(auteur,''), COALESCE(date,''), COALESCE(resume,'') FROM $TABLE_INFO WHERE id=1", null)
+        val cursor = readableDatabase.rawQuery("SELECT * FROM $TABLE_INFO WHERE id=1", null)
+        val idIdx = cursor.columnNames.indexOfFirst { it.equals("id", true) }
+        val titIdx = cursor.columnNames.indexOfFirst { it.equals("titre", true) }
+        val stiIdx = cursor.columnNames.indexOfFirst { it.equals("stitre", true) }
+        val autIdx = cursor.columnNames.indexOfFirst { it.equals("auteur", true) }
+        val datIdx = cursor.columnNames.indexOfFirst { it.equals("date", true) }
+        val resIdx = cursor.columnNames.indexOfFirst { it.equals("resume", true) }
+
         return if (cursor.moveToFirst()) {
-            Info(cursor.getLong(0), cursor.getString(1), cursor.getString(2), cursor.getString(3), cursor.getString(4), cursor.getString(5)).also { cursor.close() }
+            Info(
+                id = if (idIdx != -1) cursor.getLong(idIdx) else 1L,
+                titre = if (titIdx != -1) cursor.getString(titIdx) ?: "" else "",
+                stitre = if (stiIdx != -1) cursor.getString(stiIdx) ?: "" else "",
+                auteur = if (autIdx != -1) cursor.getString(autIdx) ?: "" else "",
+                date = if (datIdx != -1) cursor.getString(datIdx) ?: "" else "",
+                resume = if (resIdx != -1) cursor.getString(resIdx) ?: "" else ""
+            ).also { cursor.close() }
         } else { cursor.close(); Info() }
     }
 
@@ -344,17 +375,24 @@ class ScryBookDatabase(context: Context, dbPath: String) :
     // ─── Param ────────────────────────────────────────────────────────────────
 
     fun getParam(): Param {
-        val cursor = readableDatabase.rawQuery(
-            "SELECT id, COALESCE(police,'serif'), COALESCE(taille,'16'), COALESCE(save_time,'30'), COALESCE(langue,'fr'), COALESCE(theme,'dark'), COALESCE(format, 'A4') FROM $TABLE_PARAM WHERE id=1", null)
+        val cursor = readableDatabase.rawQuery("SELECT * FROM $TABLE_PARAM WHERE id=1", null)
+        val idIdx = cursor.columnNames.indexOfFirst { it.equals("id", true) }
+        val polIdx = cursor.columnNames.indexOfFirst { it.equals("police", true) }
+        val taiIdx = cursor.columnNames.indexOfFirst { it.equals("taille", true) }
+        val savIdx = cursor.columnNames.indexOfFirst { it.equals("save_time", true) }
+        val lanIdx = cursor.columnNames.indexOfFirst { it.equals("langue", true) }
+        val thmIdx = cursor.columnNames.indexOfFirst { it.equals("theme", true) }
+        val fmtIdx = cursor.columnNames.indexOfFirst { it.equals("format", true) }
+
         return if (cursor.moveToFirst()) {
             Param(
-                cursor.getLong(0),
-                cursor.getString(1) ?: "serif",
-                cursor.getString(2) ?: "16",
-                cursor.getString(3) ?: "30",
-                cursor.getString(4) ?: "fr",
-                cursor.getString(5) ?: "dark",
-                cursor.getString(6) ?: "A4"
+                id = if (idIdx != -1) cursor.getLong(idIdx) else 1L,
+                police = if (polIdx != -1) cursor.getString(polIdx) ?: "serif" else "serif",
+                taille = if (taiIdx != -1) cursor.getString(taiIdx) ?: "16" else "16",
+                saveTime = if (savIdx != -1) cursor.getString(savIdx) ?: "30" else "30",
+                langue = if (lanIdx != -1) cursor.getString(lanIdx) ?: "fr" else "fr",
+                theme = if (thmIdx != -1) cursor.getString(thmIdx) ?: "dark" else "dark",
+                format = if (fmtIdx != -1) cursor.getString(fmtIdx) ?: "A4" else "A4"
             ).also { cursor.close() }
         } else { cursor.close(); Param() }
     }
