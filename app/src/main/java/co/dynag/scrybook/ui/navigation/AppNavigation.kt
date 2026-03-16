@@ -14,8 +14,18 @@ import java.net.URLDecoder
 fun AppNavigation(openFilePath: String? = null) {
     val navController = rememberNavController()
 
-    // Removed LaunchedEffect for direct navigation which had race conditions with NavHost inflation.
-    // startDestination now handles it dynamically.
+    // Handle warm/hot launches via onNewIntent
+    LaunchedEffect(openFilePath) {
+        openFilePath?.let { path ->
+            val route = Screen.Project.createRoute(path)
+            val currentPathArg = navController.currentBackStackEntry?.arguments?.getString("projectPath")
+            if (currentPathArg != path) {
+                navController.navigate(route) {
+                    popUpTo(Screen.Home.route) { inclusive = false }
+                }
+            }
+        }
+    }
 
     NavHost(
         navController = navController,
