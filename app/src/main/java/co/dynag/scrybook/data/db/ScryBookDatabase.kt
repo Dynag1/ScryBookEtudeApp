@@ -111,7 +111,25 @@ class ScryBookDatabase(context: Context, dbPath: String) :
         db.execSQL("INSERT OR IGNORE INTO $TABLE_INFO (id, titre, auteur, date, resume) VALUES (1,'','','','')")
         db.execSQL("INSERT OR IGNORE INTO $TABLE_PARAM (id, police, taille, save_time, langue, theme) VALUES (1,'serif','16','30','fr','dark')")
 
-        // Créer les chapitres par défaut
+        // Créer les chapitres (modèle ou défaut)
+        val prefs = context.getSharedPreferences("scrybook_recent", android.content.Context.MODE_PRIVATE)
+        val templateJson = prefs.getString("chapitres_auto", null)
+
+        if (!templateJson.isNullOrBlank()) {
+            try {
+                val array = org.json.JSONArray(templateJson)
+                for (i in 0 until array.length()) {
+                    val obj = array.getJSONObject(i)
+                    val nom = obj.optString("nom", "")
+                    val numero = obj.optString("numero", "")
+                    val resume = obj.optString("resume", "")
+                    val contenuHtml = obj.optString("contenu_html", "")
+                    db.execSQL("INSERT INTO $TABLE_CHAPITRE (nom, numero, resume, contenu_html) VALUES (?, ?, ?, ?)", arrayOf(nom, numero, resume, contenuHtml))
+                }
+                return // Modèle correctement chargé, on sort !
+            } catch (e: Exception) { e.printStackTrace() }
+        }
+
         DEFAULT_CHAPTERS.forEach { (nom, numero, resume) ->
             db.execSQL("INSERT INTO $TABLE_CHAPITRE (nom, numero, resume, contenu_html) VALUES ('$nom','$numero','$resume','')")
         }
@@ -386,5 +404,20 @@ class ScryBookDatabase(context: Context, dbPath: String) :
         } catch (e: Exception) {
             // Might fail if not in WAL mode, but it's okay.
         }
+    }
+
+    fun getChaptersAsJson(): String {
+        val array = org.json.JSONArray()
+        val cursor = readableDatabase.rawQuery("SELECT nom, numero, resume, contenu_html FROM $TABLE_CHAPITRE", null)
+        while (cursor.moveToNext()) {
+             val obj = org.json.JSONObject()
+             obj.put("nom", cursor.getString(0) ?: "")
+             obj.put("numero", cursor.getString(1) ?: "")
+             obj.put("resume", cursor.getString(2) ?: "")
+             obj.put("contenu_html", cursor.getString(3) ?: "")
+             array.put(obj)
+        }
+        cursor.close()
+        return array.toString()
     }
 }

@@ -195,4 +195,10 @@ class ScryBookRepository(private val context: Context) {
         syncBack()
         _currentParam.value = param
     }
+
+    suspend fun saveAsTemplate() = withContext(Dispatchers.IO) {
+        val json = dbHelper?.getChaptersAsJson() ?: return@withContext
+        context.getSharedPreferences("scrybook_recent", Context.MODE_PRIVATE)
+            .edit().putString("chapitres_auto", json).apply()
+    }
 }

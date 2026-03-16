@@ -178,6 +178,13 @@ class EditorViewModel @Inject constructor(
         }
     }
 
+    fun saveAsTemplate() {
+        viewModelScope.launch {
+            saveNow() // Make sure to save the current chapter first
+            repository.saveAsTemplate()
+        }
+    }
+
     override fun onCleared() {
         saveNow()
         tts?.shutdown()

@@ -213,7 +213,11 @@ fun EditorScreen(
                         },
                         onSave = { viewModel.saveNow() },
                         onDelete = { showDeleteConfirmDialog = true },
-                        onEditMetadata = { showEditChapterDialog = true }
+                        onEditMetadata = { showEditChapterDialog = true },
+                        onSaveAsTemplate = {
+                            viewModel.saveAsTemplate()
+                            android.widget.Toast.makeText(context, "Modèle enregistré !", android.widget.Toast.LENGTH_SHORT).show()
+                        }
                     )
                 },
                 bottomBar = { ScryBookBottomBar() }
@@ -294,7 +298,11 @@ fun EditorScreen(
                     },
                     onSave = { viewModel.saveNow() },
                     onDelete = { showDeleteConfirmDialog = true },
-                    onEditMetadata = { showEditChapterDialog = true }
+                    onEditMetadata = { showEditChapterDialog = true },
+                    onSaveAsTemplate = {
+                        viewModel.saveAsTemplate()
+                        android.widget.Toast.makeText(context, "Modèle enregistré !", android.widget.Toast.LENGTH_SHORT).show()
+                    }
                 )
             },
             bottomBar = { ScryBookBottomBar() }
@@ -407,8 +415,11 @@ private fun EditorTopAppBar(
     onToggleStt: () -> Unit,
     onSave: () -> Unit,
     onDelete: () -> Unit,
-    onEditMetadata: () -> Unit
+    onEditMetadata: () -> Unit,
+    onSaveAsTemplate: () -> Unit
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+
     TopAppBar(
         navigationIcon = {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -458,6 +469,24 @@ private fun EditorTopAppBar(
                     contentDescription = stringResource(R.string.action_stt),
                     tint = if (isSttListening) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
                 )
+            }
+            Box {
+                IconButton(onClick = { showMenu = !showMenu }) {
+                    Icon(Icons.Default.MoreVert, contentDescription = "Plus d'options")
+                }
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Enregistrer comme modèle") },
+                        onClick = {
+                            showMenu = false
+                            onSaveAsTemplate()
+                        },
+                        leadingIcon = { Icon(Icons.Default.SaveAs, contentDescription = null) }
+                    )
+                }
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
